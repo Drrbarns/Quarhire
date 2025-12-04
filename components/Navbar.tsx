@@ -25,14 +25,10 @@ export default function Navbar() {
           <Link href="/" className="flex items-center gap-3 group">
             <div className="relative">
               <img 
-                src="https://static.readdy.ai/image/8e94e1476ded2dfd78d904370fe1b75f/5a821ca5aba312b2266d043ccc9a8171.jpeg" 
+                src={scrolled ? "/black.png" : "/Quarhire.png"} 
                 alt="Quarhire Logo" 
-                className="h-14 w-auto transition-transform duration-300 group-hover:scale-105"
+                className="h-14 w-auto transition-all duration-300 group-hover:scale-105"
               />
-            </div>
-            <div className={`hidden lg:block transition-colors duration-300 ${scrolled ? 'text-gray-900' : 'text-white'}`}>
-              <div className="text-xl font-bold">Quarhire</div>
-              <div className="text-xs font-medium opacity-75">Premium Transport</div>
             </div>
           </Link>
 
