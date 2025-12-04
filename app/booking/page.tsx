@@ -12,8 +12,11 @@ function BookingFormContent() {
     name: '',
     email: '',
     phone: '',
-    pickupLocation: '',
+    pickupLocation: 'Kotoka International Airport',
     destination: serviceParam || '',
+    customDestination: '',
+    airline: '',
+    flightNumber: '',
     vehicleType: 'economy',
     date: '',
     time: '',
@@ -54,7 +57,8 @@ function BookingFormContent() {
   };
 
   const calculatePrice = () => {
-    const basePrice = destinationPrices[formData.destination] || 0;
+    const destination = formData.customDestination || formData.destination;
+    const basePrice = destinationPrices[destination] || 0;
     const vehicleMultiplier = vehicleMultipliers[formData.vehicleType];
     let total = basePrice * vehicleMultiplier;
 
@@ -117,8 +121,11 @@ function BookingFormContent() {
             name: '',
             email: '',
             phone: '',
-            pickupLocation: '',
+            pickupLocation: 'Kotoka International Airport',
             destination: '',
+            customDestination: '',
+            airline: '',
+            flightNumber: '',
             vehicleType: 'economy',
             date: '',
             time: '',
@@ -240,50 +247,139 @@ function BookingFormContent() {
                         </div>
                         Trip Details
                       </h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                      <div className="space-y-4 sm:space-y-6">
                         <div>
                           <label className="block text-sm font-bold text-[#0A0A0A] mb-2 sm:mb-3">Pickup Location *</label>
-                          <input
-                            type="text"
-                            required
-                            className="w-full px-4 sm:px-5 py-3 sm:py-4 border-2 border-[#DDE2E9] rounded-xl focus:outline-none focus:border-[#0074C8] transition-all text-sm sm:text-base bg-[#DDE2E9]/20"
-                            placeholder="Enter pickup address"
-                            name="pickupLocation"
-                            value={formData.pickupLocation}
-                            onChange={handleInputChange}
-                          />
+                          <div className="relative">
+                            <input
+                              type="text"
+                              required
+                              disabled
+                              className="w-full px-4 sm:px-5 py-3 sm:py-4 border-2 border-[#DDE2E9] rounded-xl text-sm sm:text-base bg-[#DDE2E9]/40 cursor-not-allowed"
+                              value={formData.pickupLocation}
+                              readOnly
+                            />
+                            <i className="ri-lock-line absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-[#0074C8] pointer-events-none text-lg sm:text-xl w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center"></i>
+                          </div>
+                          <p className="text-xs text-[#2B2F35] mt-1.5">Currently operating from Kotoka International Airport only</p>
                         </div>
+                        
                         <div>
                           <label className="block text-sm font-bold text-[#0A0A0A] mb-2 sm:mb-3">Destination *</label>
-                          <div className="relative">
-                            <select
-                              name="destination"
-                              required
-                              className="w-full px-4 sm:px-5 py-3 sm:py-4 pr-10 sm:pr-12 border-2 border-[#DDE2E9] rounded-xl focus:outline-none focus:border-[#0074C8] transition-all appearance-none cursor-pointer text-sm sm:text-base bg-[#DDE2E9]/20 font-medium"
-                              value={formData.destination}
-                              onChange={handleInputChange}
-                            >
-                              <option value="">Select destination</option>
-                              <option value="Kotoka International Airport">Kotoka International Airport</option>
-                              <option value="Accra Mall">Accra Mall</option>
-                              <option value="Labadi Beach">Labadi Beach</option>
-                              <option value="Osu Oxford Street">Osu Oxford Street</option>
-                              <option value="Tema">Tema</option>
-                              <option value="East Legon">East Legon</option>
-                              <option value="Cantonments">Cantonments</option>
-                              <option value="Airport Residential Area">Airport Residential Area</option>
-                              <option value="Spintex">Spintex</option>
-                              <option value="Madina">Madina</option>
-                              <option value="Achimota">Achimota</option>
-                              <option value="Dansoman">Dansoman</option>
-                              <option value="Kasoa">Kasoa</option>
-                              <option value="Weija">Weija</option>
-                              <option value="Aburi">Aburi</option>
-                              <option value="Akosombo">Akosombo</option>
-                              <option value="Cape Coast">Cape Coast</option>
-                              <option value="Kumasi">Kumasi</option>
-                            </select>
-                            <i className="ri-map-pin-line absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-[#0074C8] pointer-events-none text-lg sm:text-xl w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center"></i>
+                          <div className="bg-[#F8FAFB] border border-[#DDE2E9] rounded-xl p-4 sm:p-5 space-y-3">
+                            <div>
+                              <label className="block text-xs font-semibold text-[#2B2F35] mb-2 uppercase tracking-wide">Select from list</label>
+                              <div className="relative">
+                                <select
+                                  name="destination"
+                                  className="w-full px-4 sm:px-5 py-3 sm:py-4 pr-10 sm:pr-12 border-2 border-[#DDE2E9] rounded-xl focus:outline-none focus:border-[#0074C8] transition-all appearance-none cursor-pointer text-sm sm:text-base bg-white font-medium"
+                                  value={formData.destination}
+                                  onChange={(e) => {
+                                    setFormData(prev => ({ ...prev, destination: e.target.value, customDestination: '' }));
+                                  }}
+                                >
+                                  <option value="">Choose a location...</option>
+                                  <option value="Accra Mall">Accra Mall</option>
+                                  <option value="Labadi Beach">Labadi Beach</option>
+                                  <option value="Osu Oxford Street">Osu Oxford Street</option>
+                                  <option value="Tema">Tema</option>
+                                  <option value="East Legon">East Legon</option>
+                                  <option value="West Legon">West Legon</option>
+                                  <option value="Cantonments">Cantonments</option>
+                                  <option value="Osu">Osu</option>
+                                  <option value="Labone">Labone</option>
+                                  <option value="Airport Residential Area">Airport Residential Area</option>
+                                  <option value="Roman Ridge">Roman Ridge</option>
+                                  <option value="Ridge">Ridge</option>
+                                  <option value="Dzorwulu">Dzorwulu</option>
+                                  <option value="Trasacco Valley">Trasacco Valley</option>
+                                  <option value="Lakeside Estate">Lakeside Estate</option>
+                                  <option value="Teshie">Teshie</option>
+                                  <option value="Nungua">Nungua</option>
+                                  <option value="Spintex Road">Spintex Road</option>
+                                  <option value="McCarthy Hill">McCarthy Hill</option>
+                                  <option value="Dansoman">Dansoman</option>
+                                  <option value="Dansoman Estates">Dansoman Estates</option>
+                                  <option value="Kokomlemle">Kokomlemle</option>
+                                  <option value="Adabraka">Adabraka</option>
+                                  <option value="Asylum Down">Asylum Down</option>
+                                  <option value="Kaneshie">Kaneshie</option>
+                                  <option value="Odorkor">Odorkor</option>
+                                  <option value="Mallam">Mallam</option>
+                                  <option value="Mallam Junction">Mallam Junction</option>
+                                  <option value="Kasoa">Kasoa</option>
+                                  <option value="Weija">Weija</option>
+                                  <option value="Sakumono">Sakumono</option>
+                                  <option value="Teshie-Nungua">Teshie-Nungua</option>
+                                  <option value="La">La</option>
+                                  <option value="Labadi">Labadi</option>
+                                  <option value="Jamestown">Jamestown</option>
+                                  <option value="Ussher Town">Ussher Town</option>
+                                  <option value="James Town">James Town</option>
+                                  <option value="Korle Bu">Korle Bu</option>
+                                  <option value="Korle Gonno">Korle Gonno</option>
+                                  <option value="Mamprobi">Mamprobi</option>
+                                  <option value="Chorkor">Chorkor</option>
+                                  <option value="Gbawe">Gbawe</option>
+                                  <option value="Awoshie">Awoshie</option>
+                                  <option value="Pokuase">Pokuase</option>
+                                  <option value="Achimota">Achimota</option>
+                                  <option value="Achimota Forest">Achimota Forest</option>
+                                  <option value="Ring Road">Ring Road</option>
+                                  <option value="Kanda">Kanda</option>
+                                  <option value="Nima">Nima</option>
+                                  <option value="Mamobi">Mamobi</option>
+                                  <option value="New Town">New Town</option>
+                                  <option value="Old Fadama">Old Fadama</option>
+                                  <option value="Abelemkpe">Abelemkpe</option>
+                                  <option value="Tesano">Tesano</option>
+                                  <option value="Alajo">Alajo</option>
+                                  <option value="Kwashieman">Kwashieman</option>
+                                  <option value="Darkuman">Darkuman</option>
+                                  <option value="Kokrobite">Kokrobite</option>
+                                  <option value="Bortianor">Bortianor</option>
+                                  <option value="Prampram">Prampram</option>
+                                  <option value="Spintex">Spintex</option>
+                                  <option value="Madina">Madina</option>
+                                  <option value="Aburi">Aburi</option>
+                                  <option value="Akosombo">Akosombo</option>
+                                  <option value="Cape Coast">Cape Coast</option>
+                                  <option value="Kumasi">Kumasi</option>
+                                </select>
+                                <i className="ri-arrow-down-s-line absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-[#0074C8] pointer-events-none text-lg sm:text-xl w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center"></i>
+                              </div>
+                            </div>
+                            
+                            <div className="relative">
+                              <div className="flex items-center gap-2 mb-2">
+                                <div className="h-px flex-1 bg-[#DDE2E9]"></div>
+                                <span className="text-xs font-medium text-[#2B2F35] uppercase tracking-wide">Or</span>
+                                <div className="h-px flex-1 bg-[#DDE2E9]"></div>
+                              </div>
+                              <label className="block text-xs font-semibold text-[#2B2F35] mb-2 uppercase tracking-wide">Enter custom location</label>
+                              <div className="relative">
+                                <input
+                                  type="text"
+                                  name="customDestination"
+                                  className="w-full px-4 sm:px-5 py-3 sm:py-4 border-2 border-[#DDE2E9] rounded-xl focus:outline-none focus:border-[#0074C8] transition-all text-sm sm:text-base bg-white"
+                                  placeholder="Type your destination address..."
+                                  value={formData.customDestination}
+                                  onChange={(e) => {
+                                    setFormData(prev => ({ ...prev, customDestination: e.target.value, destination: '' }));
+                                  }}
+                                />
+                                <i className="ri-edit-line absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-[#0074C8] pointer-events-none text-lg sm:text-xl w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center"></i>
+                              </div>
+                            </div>
+                            
+                            {(formData.destination || formData.customDestination) && (
+                              <div className="pt-2 border-t border-[#DDE2E9]">
+                                <div className="flex items-center gap-2 text-sm text-emerald-600 font-medium">
+                                  <i className="ri-check-circle-fill"></i>
+                                  <span>Selected: {formData.customDestination || formData.destination}</span>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
                         <div>
@@ -305,6 +401,28 @@ function BookingFormContent() {
                             className="w-full px-4 sm:px-5 py-3 sm:py-4 border-2 border-[#DDE2E9] rounded-xl focus:outline-none focus:border-[#0074C8] transition-all text-sm sm:text-base bg-[#DDE2E9]/20"
                             name="time"
                             value={formData.time}
+                            onChange={handleInputChange}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-bold text-[#0A0A0A] mb-2 sm:mb-3">Airline</label>
+                          <input
+                            type="text"
+                            className="w-full px-4 sm:px-5 py-3 sm:py-4 border-2 border-[#DDE2E9] rounded-xl focus:outline-none focus:border-[#0074C8] transition-all text-sm sm:text-base bg-[#DDE2E9]/20"
+                            placeholder="e.g., Emirates, KLM, British Airways"
+                            name="airline"
+                            value={formData.airline}
+                            onChange={handleInputChange}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-bold text-[#0A0A0A] mb-2 sm:mb-3">Flight Number</label>
+                          <input
+                            type="text"
+                            className="w-full px-4 sm:px-5 py-3 sm:py-4 border-2 border-[#DDE2E9] rounded-xl focus:outline-none focus:border-[#0074C8] transition-all text-sm sm:text-base bg-[#DDE2E9]/20"
+                            placeholder="e.g., EK787, KL590"
+                            name="flightNumber"
+                            value={formData.flightNumber}
                             onChange={handleInputChange}
                           />
                         </div>
@@ -428,7 +546,7 @@ function BookingFormContent() {
                       <button
                         type="button"
                         onClick={() => handleSubmit(true)}
-                        disabled={isSubmitting || !formData.destination}
+                        disabled={isSubmitting || (!formData.destination && !formData.customDestination)}
                         className="w-full bg-gradient-to-r from-[#0074C8] to-[#0097F2] text-white py-4 sm:py-5 rounded-xl font-bold text-base sm:text-lg hover:shadow-2xl hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 whitespace-nowrap flex items-center justify-center gap-2 sm:gap-3"
                       >
                         <i className="ri-bank-card-line text-lg sm:text-xl w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center"></i>
@@ -438,7 +556,7 @@ function BookingFormContent() {
                       <button
                         type="button"
                         onClick={() => handleSubmit(false)}
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || (!formData.destination && !formData.customDestination)}
                         className="w-full bg-[#0A0A0A] text-white py-4 sm:py-5 rounded-xl font-bold text-base sm:text-lg hover:bg-[#2B2F35] hover:shadow-xl hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 whitespace-nowrap flex items-center justify-center gap-2 sm:gap-3"
                       >
                         <i className="ri-bookmark-line text-lg sm:text-xl w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center"></i>

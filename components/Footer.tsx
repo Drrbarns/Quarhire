@@ -7,7 +7,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
           <div className="space-y-4">
             <img 
-              src="/Quarhire.png" 
+              src="https://static.readdy.ai/image/8e94e1476ded2dfd78d904370fe1b75f/5a821ca5aba312b2266d043ccc9a8171.jpeg" 
               alt="Quarhire Logo" 
               className="h-12 w-auto mb-4"
             />

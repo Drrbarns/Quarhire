@@ -7,15 +7,12 @@ export default function Hero() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
-  const [showVehiclePicker, setShowVehiclePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('');
-  const [selectedVehicle, setSelectedVehicle] = useState('');
   const [searchLocation, setSearchLocation] = useState('');
   const datePickerRef = useRef<HTMLDivElement>(null);
   const locationPickerRef = useRef<HTMLDivElement>(null);
-  const vehiclePickerRef = useRef<HTMLDivElement>(null);
 
   const slides = [
     'https://static.readdy.ai/image/8e94e1476ded2dfd78d904370fe1b75f/3ad36e7dbb4cdee890de83fd045b7b20.jpeg',
@@ -36,12 +33,6 @@ export default function Hero() {
     'Kwashieman', 'Darkuman', 'Dansoman', 'Kokrobite', 'Bortianor', 'Prampram'
   ];
 
-  const vehicles = [
-    { type: 'Sedan', icon: 'ri-car-line', description: 'Comfortable 4-seater for individuals or couples', capacity: '1-4 passengers' },
-    { type: 'SUV', icon: 'ri-roadster-line', description: 'Spacious 6-seater with extra luggage space', capacity: '1-6 passengers' },
-    { type: 'Van', icon: 'ri-bus-line', description: 'Large 12-seater for groups and families', capacity: '1-12 passengers' }
-  ];
-
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
@@ -57,9 +48,6 @@ export default function Hero() {
       }
       if (locationPickerRef.current && !locationPickerRef.current.contains(event.target as Node)) {
         setShowLocationPicker(false);
-      }
-      if (vehiclePickerRef.current && !vehiclePickerRef.current.contains(event.target as Node)) {
-        setShowVehiclePicker(false);
       }
     };
 
@@ -98,11 +86,6 @@ export default function Hero() {
     setSelectedLocation(location);
     setShowLocationPicker(false);
     setSearchLocation('');
-  };
-
-  const handleVehicleSelect = (vehicle: string) => {
-    setSelectedVehicle(vehicle);
-    setShowVehiclePicker(false);
   };
 
   return (
@@ -319,64 +302,20 @@ export default function Hero() {
                     )}
                   </div>
 
-                  {/* Vehicle Picker */}
-                  <div className="relative" ref={vehiclePickerRef}>
-                    <div 
-                      onClick={() => setShowVehiclePicker(!showVehiclePicker)}
-                      className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer group"
-                    >
-                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center transition-colors ${
-                        selectedVehicle ? 'bg-[#0074C8]' : 'bg-[#0074C8]/10 group-hover:bg-[#0074C8]'
-                      }`}>
-                        <i className={`text-xl transition-colors ${
-                          selectedVehicle ? 'text-white' : 'text-[#0074C8] group-hover:text-white'
-                        } ri-car-line`}></i>
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-semibold text-gray-900">Choose Vehicle</div>
-                        <div className="text-sm text-gray-500">
-                          {selectedVehicle || 'Sedan, SUV, or Van'}
-                        </div>
-                      </div>
-                      <i className={`ri-arrow-${showVehiclePicker ? 'up' : 'down'}-s-line text-gray-400 transition-transform`}></i>
+                  <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer group">
+                    <div className="w-12 h-12 rounded-lg bg-[#0074C8]/10 flex items-center justify-center group-hover:bg-[#0074C8] transition-colors">
+                      <i className="ri-car-line text-[#0074C8] group-hover:text-white text-xl transition-colors"></i>
                     </div>
-                    
-                    {showVehiclePicker && (
-                      <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden">
-                        <div className="p-2">
-                          {vehicles.map((vehicle, index) => (
-                            <button
-                              key={index}
-                              onClick={() => handleVehicleSelect(vehicle.type)}
-                              className={`w-full text-left px-4 py-4 hover:bg-gray-50 rounded-lg transition-colors flex items-start gap-4 ${
-                                selectedVehicle === vehicle.type ? 'bg-[#0074C8]/5 border border-[#0074C8]/20' : ''
-                              }`}
-                            >
-                              <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                                selectedVehicle === vehicle.type ? 'bg-[#0074C8]' : 'bg-gray-100'
-                              }`}>
-                                <i className={`text-xl ${
-                                  selectedVehicle === vehicle.type ? 'text-white' : 'text-gray-600'
-                                } ${vehicle.icon}`}></i>
-                              </div>
-                              <div className="flex-1">
-                                <div className="font-semibold text-gray-900 mb-1">{vehicle.type}</div>
-                                <div className="text-xs text-gray-500 mb-1">{vehicle.description}</div>
-                                <div className="text-xs font-medium text-[#0074C8]">{vehicle.capacity}</div>
-                              </div>
-                              {selectedVehicle === vehicle.type && (
-                                <i className="ri-checkbox-circle-fill text-[#0074C8] text-xl"></i>
-                              )}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                    <div className="flex-1">
+                      <div className="font-semibold text-gray-900">Choose Vehicle</div>
+                      <div className="text-sm text-gray-500">Sedan, SUV, or Van</div>
+                    </div>
+                    <i className="ri-arrow-right-s-line text-gray-400"></i>
                   </div>
                 </div>
 
                 <Link
-                  href={`/booking${selectedDate || selectedTime || selectedLocation || selectedVehicle ? `?date=${selectedDate}&time=${selectedTime}&location=${encodeURIComponent(selectedLocation)}&vehicle=${encodeURIComponent(selectedVehicle)}` : ''}`}
+                  href={`/booking${selectedDate || selectedTime || selectedLocation ? `?date=${selectedDate}&time=${selectedTime}&location=${encodeURIComponent(selectedLocation)}` : ''}`}
                   className="w-full inline-flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-[#0074C8] to-[#0097F2] text-white rounded-xl font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-[#0074C8]/30 hover:scale-[1.02]"
                 >
                   Request Pickup
@@ -417,6 +356,13 @@ export default function Hero() {
             aria-label={`Go to slide ${index + 1}`}
           />
         ))}
+      </div>
+
+      {/* Scroll Indicator */}
+      <div className="absolute bottom-8 right-8 hidden lg:block animate-bounce">
+        <div className="w-6 h-10 border-2 border-white/50 rounded-full flex items-start justify-center p-2">
+          <div className="w-1.5 h-3 bg-white/50 rounded-full"></div>
+        </div>
       </div>
     </section>
   );
