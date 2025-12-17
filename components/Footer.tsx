@@ -6,28 +6,29 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
           <div className="space-y-4">
-            <img 
-              src="/Quarhire.png" 
-              alt="Quarhire Logo" 
+            <img
+              src="/Quarhire.png"
+              alt="Quarhire Logo"
               className="h-12 w-auto mb-4"
             />
             <p className="text-[#DDE2E9] leading-relaxed">
               Your trusted partner for reliable and comfortable airport pickup services in Ghana.
             </p>
-            <div className="flex gap-4 pt-2">
-              <a href="#" className="w-10 h-10 flex items-center justify-center bg-[#2B2F35] hover:bg-[#0074C8] rounded-full transition-all duration-300 hover:scale-110">
+            {/* Social Media Links - Add your actual URLs when available */}
+            {/* <div className="flex gap-4 pt-2">
+              <a href="https://facebook.com/quarhire" target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center bg-[#2B2F35] hover:bg-[#0074C8] rounded-full transition-all duration-300 hover:scale-110">
                 <i className="ri-facebook-fill text-xl w-5 h-5 flex items-center justify-center"></i>
               </a>
-              <a href="#" className="w-10 h-10 flex items-center justify-center bg-[#2B2F35] hover:bg-[#0074C8] rounded-full transition-all duration-300 hover:scale-110">
+              <a href="https://twitter.com/quarhire" target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center bg-[#2B2F35] hover:bg-[#0074C8] rounded-full transition-all duration-300 hover:scale-110">
                 <i className="ri-twitter-fill text-xl w-5 h-5 flex items-center justify-center"></i>
               </a>
-              <a href="#" className="w-10 h-10 flex items-center justify-center bg-[#2B2F35] hover:bg-[#0074C8] rounded-full transition-all duration-300 hover:scale-110">
+              <a href="https://instagram.com/quarhire" target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center bg-[#2B2F35] hover:bg-[#0074C8] rounded-full transition-all duration-300 hover:scale-110">
                 <i className="ri-instagram-fill text-xl w-5 h-5 flex items-center justify-center"></i>
               </a>
-              <a href="#" className="w-10 h-10 flex items-center justify-center bg-[#2B2F35] hover:bg-[#0074C8] rounded-full transition-all duration-300 hover:scale-110">
+              <a href="https://linkedin.com/company/quarhire" target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center bg-[#2B2F35] hover:bg-[#0074C8] rounded-full transition-all duration-300 hover:scale-110">
                 <i className="ri-linkedin-fill text-xl w-5 h-5 flex items-center justify-center"></i>
               </a>
-            </div>
+            </div> */}
           </div>
 
           <div>
@@ -75,18 +76,19 @@ export default function Footer() {
                   Contact Us
                 </Link>
               </li>
-              <li>
-                <a href="#" className="hover:text-[#0074C8] transition-colors duration-300 flex items-center gap-2">
+              {/* Privacy Policy and Terms - Add pages when available */}
+              {/* <li>
+                <Link href="/privacy" className="hover:text-[#0074C8] transition-colors duration-300 flex items-center gap-2">
                   <i className="ri-arrow-right-s-line w-4 h-4 flex items-center justify-center"></i>
                   Privacy Policy
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="hover:text-[#0074C8] transition-colors duration-300 flex items-center gap-2">
+                <Link href="/terms" className="hover:text-[#0074C8] transition-colors duration-300 flex items-center gap-2">
                   <i className="ri-arrow-right-s-line w-4 h-4 flex items-center justify-center"></i>
                   Terms of Service
-                </a>
-              </li>
+                </Link>
+              </li> */}
             </ul>
           </div>
 
@@ -99,7 +101,10 @@ export default function Footer() {
               </li>
               <li className="flex items-start gap-3">
                 <i className="ri-phone-line text-[#0074C8] text-xl w-5 h-5 flex items-center justify-center"></i>
-                <span>+233 24 668 6388</span>
+                <div className="flex flex-col">
+                  <span>+233 240 665 648</span>
+                  <span>+233 302 938 717</span>
+                </div>
               </li>
               <li className="flex items-start gap-3">
                 <i className="ri-mail-line text-[#0074C8] text-xl w-5 h-5 flex items-center justify-center"></i>
@@ -118,8 +123,8 @@ export default function Footer() {
             <p className="text-[#DDE2E9] text-sm">
               © 2025 Quarhire. All rights reserved.
             </p>
-            <Link 
-              href="https://doctorbarns.com" 
+            <Link
+              href="https://doctorbarns.com"
               target="_blank"
               className="text-[#DDE2E9] hover:text-[#0074C8] text-sm transition-colors duration-300"
             >

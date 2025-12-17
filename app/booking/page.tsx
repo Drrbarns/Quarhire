@@ -3,11 +3,18 @@
 
 import { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import {
+  initializePaystackPayment,
+  generatePaymentReference,
+  convertToKobo,
+  formatBookingMetadata,
+  type BookingData
+} from '@/lib/paystack';
 
 function BookingFormContent() {
   const searchParams = useSearchParams();
   const serviceParam = searchParams.get('service');
-  
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -27,57 +34,82 @@ function BookingFormContent() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [paymentSuccessData, setPaymentSuccessData] = useState<{
+    reference: string;
+    amount: string;
+    date: string;
+    time: string;
+    vehicle: string;
+    pickup: string;
+    destination: string;
+  } | null>(null);
 
-  const destinationPrices: { [key: string]: number } = {
-    'Kotoka International Airport': 80,
-    'Accra Mall': 60,
-    'Labadi Beach': 70,
-    'Osu Oxford Street': 65,
-    'Tema': 100,
-    'East Legon': 75,
-    'Cantonments': 70,
-    'Airport Residential Area': 65,
-    'Spintex': 85,
-    'Madina': 90,
-    'Achimota': 95,
-    'Dansoman': 100,
-    'Kasoa': 120,
-    'Weija': 110,
-    'Aburi': 150,
-    'Akosombo': 250,
-    'Cape Coast': 300,
-    'Kumasi': 400
-  };
 
-  const vehicleMultipliers: { [key: string]: number } = {
-    'economy': 1,
-    'suv': 1.4,
-    'executive': 1.8,
-    'van': 2.2
+  // Fixed pricing per vehicle type
+  const vehiclePrices: { [key: string]: number } = {
+    'economy': 600,      // Sedan
+    'suv': 1500,         // Premium SUV
+    'executive': 900,    // Mini SUV
+    'van': 2000          // Executive Van
   };
 
   const calculatePrice = () => {
-    const destination = formData.customDestination || formData.destination;
-    const basePrice = destinationPrices[destination] || 0;
-    const vehicleMultiplier = vehicleMultipliers[formData.vehicleType];
-    let total = basePrice * vehicleMultiplier;
-
-    const extraPassengers = Math.max(0, formData.passengers - 4);
-    const extraLuggage = Math.max(0, formData.luggage - 3);
-    
-    total += extraPassengers * 15;
-    total += extraLuggage * 10;
+    const basePrice = vehiclePrices[formData.vehicleType] || 0;
 
     return {
       basePrice,
-      vehicleMultiplier,
-      extraPassengers,
-      extraLuggage,
-      total: total.toFixed(2)
+      total: basePrice.toFixed(2)
     };
   };
 
   const priceBreakdown = calculatePrice();
+
+  const sendBookingConfirmationEmail = async (paymentStatus: 'paid' | 'reserved', paymentReference?: string) => {
+    try {
+      const bookingReference = paymentReference || `QRHRE-${Date.now()}`;
+      
+      const emailData = {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        pickupLocation: formData.pickupLocation,
+        destination: formData.destination,
+        customDestination: formData.customDestination,
+        airline: formData.airline,
+        flightNumber: formData.flightNumber,
+        vehicleType: formData.vehicleType,
+        date: formData.date,
+        time: formData.time,
+        passengers: formData.passengers,
+        luggage: formData.luggage,
+        specialRequests: formData.specialRequests,
+        estimatedPrice: `GHS ${priceBreakdown.total}`,
+        bookingReference: bookingReference,
+        paymentStatus: paymentStatus,
+        paymentReference: paymentReference,
+      };
+
+      const response = await fetch('/api/booking/email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(emailData),
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        console.log('Booking confirmation email sent successfully');
+      } else {
+        console.warn('Email sending failed:', result.message);
+      }
+    } catch (error) {
+      console.error('Error sending booking email:', error);
+      // Don't show error to user - email failure shouldn't block the booking
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -85,6 +117,107 @@ function BookingFormContent() {
       ...prev,
       [name]: name === 'passengers' || name === 'luggage' ? parseInt(value) || 0 : value
     }));
+  };
+
+  const handlePaystackPayment = async () => {
+    const paymentReference = generatePaymentReference();
+    const amountInKobo = convertToKobo(parseFloat(priceBreakdown.total));
+    
+    const bookingData: BookingData = {
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      pickupLocation: formData.pickupLocation,
+      destination: formData.destination,
+      customDestination: formData.customDestination,
+      airline: formData.airline,
+      flightNumber: formData.flightNumber,
+      vehicleType: formData.vehicleType,
+      date: formData.date,
+      time: formData.time,
+      passengers: formData.passengers,
+      luggage: formData.luggage,
+      specialRequests: formData.specialRequests,
+      estimatedPrice: `GHS ${priceBreakdown.total}`
+    };
+
+    const handler = initializePaystackPayment({
+      email: formData.email,
+      amount: amountInKobo,
+      reference: paymentReference,
+      metadata: formatBookingMetadata(bookingData),
+      onSuccess: async (reference: string) => {
+        // Verify payment on backend
+        await verifyPayment(reference);
+      },
+      onClose: () => {
+        setSubmitMessage('Payment cancelled. Your booking is still reserved. You can complete payment later.');
+        setIsSubmitting(false);
+      }
+    });
+
+    if (handler) {
+      handler.openIframe();
+    } else {
+      setSubmitMessage('Payment system not configured. Please contact support at +233 240 665 648');
+      setIsSubmitting(false);
+    }
+  };
+
+  const verifyPayment = async (reference: string) => {
+    try {
+      const response = await fetch('/api/paystack/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ reference })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Store success data and show modal
+        setPaymentSuccessData({
+          reference: reference,
+          amount: priceBreakdown.total,
+          date: formData.date,
+          time: formData.time,
+          vehicle: formData.vehicleType === 'economy' ? 'Sedan' : formData.vehicleType === 'executive' ? 'Mini SUV' : formData.vehicleType === 'suv' ? 'Premium SUV' : 'Executive Van',
+          pickup: formData.pickupLocation,
+          destination: formData.customDestination || formData.destination
+        });
+        setShowSuccessModal(true);
+        
+        // Send confirmation email
+        await sendBookingConfirmationEmail('paid', reference);
+        
+        // Reset form after successful payment
+        setFormData({
+          name: '',
+          email: '',
+          phone: '',
+          pickupLocation: 'Kotoka International Airport',
+          destination: '',
+          customDestination: '',
+          airline: '',
+          flightNumber: '',
+          vehicleType: 'economy',
+          date: '',
+          time: '',
+          passengers: 1,
+          luggage: 1,
+          specialRequests: ''
+        });
+      } else {
+        setSubmitMessage('Payment verification failed. Please contact support at +233 240 665 648');
+      }
+    } catch (error) {
+      console.error('Payment verification error:', error);
+      setSubmitMessage('Payment verification error. Please contact support at +233 240 665 648');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleSubmit = async (includePayment: boolean) => {
@@ -99,22 +232,47 @@ function BookingFormContent() {
       submitData.append('estimatedPrice', `GHS ${priceBreakdown.total}`);
       submitData.append('paymentIncluded', includePayment ? 'Yes' : 'No');
 
-      const response = await fetch('https://readdy.ai/api/public/form/submit/cm6a0rvqr000bqhz2aqwxqvqy', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: submitData.toString()
-      });
+      // Try to submit to external API
+      try {
+        const response = await fetch('https://readdy.ai/api/public/form/submit/cm6a0rvqr000bqhz2aqwxqvqy', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: submitData.toString()
+        });
 
-      if (response.ok) {
-        setSubmitMessage(includePayment ? 'Booking saved! Redirecting to payment...' : 'Booking reserved successfully! We\'ll contact you shortly.');
-        
-        if (includePayment) {
-          setTimeout(() => {
-            window.open(`https://paystack.com/pay/quarHire-booking?amount=${parseFloat(priceBreakdown.total) * 100}&email=${formData.email}&reference=${Date.now()}`, '_blank');
-          }, 1000);
+        if (!response.ok) {
+          console.warn('External API returned non-OK status:', response.status);
         }
+      } catch (apiError) {
+        console.warn('External API submission failed:', apiError);
+        // Continue anyway - we'll still show success to user
+      }
+
+      // Show success message regardless of external API
+      if (includePayment) {
+        setSubmitMessage('Booking saved! Opening payment...');
+        
+        // Small delay to show message, then open Paystack payment
+        setTimeout(() => {
+          handlePaystackPayment();
+        }, 500);
+      } else {
+        // Send reservation confirmation email
+        await sendBookingConfirmationEmail('reserved');
+        
+        // Show booking details to user
+        setSubmitMessage(`Booking reserved successfully!
+        
+Booking Details:
+📅 Date: ${formData.date} at ${formData.time}
+🚗 Vehicle: ${formData.vehicleType === 'economy' ? 'Sedan' : formData.vehicleType === 'executive' ? 'Mini SUV' : formData.vehicleType === 'suv' ? 'Premium SUV' : 'Executive Van'}
+📍 Pickup: ${formData.pickupLocation}
+📍 Destination: ${formData.customDestination || formData.destination}
+💰 Price: GHS ${priceBreakdown.total}
+
+A confirmation email has been sent to ${formData.email}. We'll contact you at ${formData.phone} to confirm your booking!`);
 
         setTimeout(() => {
           setFormData({
@@ -134,13 +292,13 @@ function BookingFormContent() {
             specialRequests: ''
           });
           setSubmitMessage('');
-        }, 3000);
-      } else {
-        setSubmitMessage('Failed to submit booking. Please try again.');
+          setIsSubmitting(false);
+        }, 10000);
       }
+
     } catch (error) {
-      setSubmitMessage('An error occurred. Please try again.');
-    } finally {
+      console.error('Submission error:', error);
+      setSubmitMessage('An error occurred. Please try again or call us at +233 240 665 648');
       setIsSubmitting(false);
     }
   };
@@ -149,20 +307,20 @@ function BookingFormContent() {
     <main className="min-h-screen bg-gradient-to-b from-white to-[#DDE2E9]/20">
       <section className="relative min-h-[400px] sm:min-h-[500px] bg-[#0A0A0A] text-white overflow-hidden flex items-center">
         <div className="absolute inset-0">
-          <img 
+          <img
             src="https://readdy.ai/api/search-image?query=Professional%20airport%20transfer%20booking%20desk%20at%20modern%20travel%20agency%2C%20friendly%20African%20staff%20helping%20travelers%20with%20reservations%2C%20clean%20contemporary%20office%20interior%20with%20computers%20and%20comfortable%20seating%2C%20warm%20welcoming%20atmosphere%2C%20bright%20natural%20lighting%2C%20high-end%20customer%20service%20environment%2C%20professional%20business%20setting&width=1920&height=800&seq=booking-hero-bg&orientation=landscape"
             alt="Book Your Airport Transfer"
             className="w-full h-full object-cover object-center"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/70"></div>
         </div>
-        
+
         <div className="container mx-auto px-4 relative z-10 py-16 sm:py-20">
           <div className="max-w-4xl mx-auto text-center">
             <div className="inline-block bg-[#0074C8]/20 backdrop-blur-sm border border-[#0074C8]/30 rounded-full px-4 sm:px-6 py-2 mb-4 sm:mb-6">
               <p className="text-[#0097F2] font-medium text-sm sm:text-base">Easy Booking Process</p>
             </div>
-            
+
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 sm:mb-6">
               Book Your Airport Transfer
             </h1>
@@ -176,7 +334,7 @@ function BookingFormContent() {
       <section className="py-12 sm:py-16 lg:py-20 relative">
         <div className="absolute top-0 left-0 w-64 sm:w-96 h-64 sm:h-96 bg-[#0074C8]/5 rounded-full blur-3xl"></div>
         <div className="absolute bottom-0 right-0 w-64 sm:w-96 h-64 sm:h-96 bg-[#0097F2]/5 rounded-full blur-3xl"></div>
-        
+
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-7xl mx-auto">
             <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
@@ -231,7 +389,7 @@ function BookingFormContent() {
                             type="tel"
                             required
                             className="w-full px-4 sm:px-5 py-3 sm:py-4 border-2 border-[#DDE2E9] rounded-xl focus:outline-none focus:border-[#0074C8] transition-all text-sm sm:text-base bg-[#DDE2E9]/20"
-                            placeholder="+233 XX XXX XXXX"
+                            placeholder="+233 240 665 648"
                             name="phone"
                             value={formData.phone}
                             onChange={handleInputChange}
@@ -263,7 +421,7 @@ function BookingFormContent() {
                           </div>
                           <p className="text-xs text-[#2B2F35] mt-1.5">Currently operating from Kotoka International Airport only</p>
                         </div>
-                        
+
                         <div>
                           <label className="block text-sm font-bold text-[#0A0A0A] mb-2 sm:mb-3">Destination *</label>
                           <div className="bg-[#F8FAFB] border border-[#DDE2E9] rounded-xl p-4 sm:p-5 space-y-3">
@@ -349,7 +507,7 @@ function BookingFormContent() {
                                 <i className="ri-arrow-down-s-line absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-[#0074C8] pointer-events-none text-lg sm:text-xl w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center"></i>
                               </div>
                             </div>
-                            
+
                             <div className="relative">
                               <div className="flex items-center gap-2 mb-2">
                                 <div className="h-px flex-1 bg-[#DDE2E9]"></div>
@@ -371,7 +529,7 @@ function BookingFormContent() {
                                 <i className="ri-edit-line absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-[#0074C8] pointer-events-none text-lg sm:text-xl w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center"></i>
                               </div>
                             </div>
-                            
+
                             {(formData.destination || formData.customDestination) && (
                               <div className="pt-2 border-t border-[#DDE2E9]">
                                 <div className="flex items-center gap-2 text-sm text-emerald-600 font-medium">
@@ -441,18 +599,17 @@ function BookingFormContent() {
                           <label className="block text-sm font-bold text-[#0A0A0A] mb-2 sm:mb-3">Vehicle Type *</label>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                             {[
-                              { value: 'economy', label: 'Economy Sedan', capacity: '1-4 passengers', icon: 'ri-car-line' },
+                              { value: 'economy', label: 'Sedan', capacity: '1-4 passengers', icon: 'ri-car-line' },
                               { value: 'suv', label: 'Premium SUV', capacity: '1-5 passengers', icon: 'ri-truck-line' },
-                              { value: 'executive', label: 'Executive Sedan', capacity: '1-4 passengers', icon: 'ri-car-line' },
+                              { value: 'executive', label: 'Mini SUV', capacity: '1-4 passengers', icon: 'ri-car-line' },
                               { value: 'van', label: 'Executive Van', capacity: '1-7 passengers', icon: 'ri-bus-line' }
                             ].map((vehicle) => (
                               <label
                                 key={vehicle.value}
-                                className={`relative flex items-center gap-3 sm:gap-4 p-3 sm:p-4 border-2 rounded-xl cursor-pointer transition-all ${
-                                  formData.vehicleType === vehicle.value
-                                    ? 'border-[#0074C8] bg-[#0074C8]/5'
-                                    : 'border-[#DDE2E9] hover:border-[#0074C8]/50'
-                                }`}
+                                className={`relative flex items-center gap-3 sm:gap-4 p-3 sm:p-4 border-2 rounded-xl cursor-pointer transition-all ${formData.vehicleType === vehicle.value
+                                  ? 'border-[#0074C8] bg-[#0074C8]/5'
+                                  : 'border-[#DDE2E9] hover:border-[#0074C8]/50'
+                                  }`}
                               >
                                 <input
                                   type="radio"
@@ -462,12 +619,10 @@ function BookingFormContent() {
                                   onChange={handleInputChange}
                                   className="sr-only"
                                 />
-                                <div className={`w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg ${
-                                  formData.vehicleType === vehicle.value ? 'bg-[#0074C8]' : 'bg-[#DDE2E9]'
-                                }`}>
-                                  <i className={`${vehicle.icon} text-lg sm:text-xl w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center ${
-                                    formData.vehicleType === vehicle.value ? 'text-white' : 'text-[#0A0A0A]'
-                                  }`}></i>
+                                <div className={`w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg ${formData.vehicleType === vehicle.value ? 'bg-[#0074C8]' : 'bg-[#DDE2E9]'
+                                  }`}>
+                                  <i className={`${vehicle.icon} text-lg sm:text-xl w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center ${formData.vehicleType === vehicle.value ? 'text-white' : 'text-[#0A0A0A]'
+                                    }`}></i>
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <div className="font-bold text-[#0A0A0A] text-sm sm:text-base truncate">{vehicle.label}</div>
@@ -526,17 +681,15 @@ function BookingFormContent() {
                     </div>
 
                     {submitMessage && (
-                      <div className={`mb-4 sm:mb-6 p-4 rounded-xl ${
-                        submitMessage.includes('success') || submitMessage.includes('saved')
-                          ? 'bg-green-50 border-2 border-green-200 text-green-800'
-                          : 'bg-red-50 border-2 border-red-200 text-red-800'
-                      }`}>
+                      <div className={`mb-4 sm:mb-6 p-4 rounded-xl ${submitMessage.includes('success') || submitMessage.includes('saved')
+                        ? 'bg-green-50 border-2 border-green-200 text-green-800'
+                        : 'bg-red-50 border-2 border-red-200 text-red-800'
+                        }`}>
                         <div className="flex items-center gap-3">
-                          <i className={`${
-                            submitMessage.includes('success') || submitMessage.includes('saved')
-                              ? 'ri-check-circle-fill'
-                              : 'ri-error-warning-fill'
-                          } text-lg sm:text-xl w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center`}></i>
+                          <i className={`${submitMessage.includes('success') || submitMessage.includes('saved')
+                            ? 'ri-check-circle-fill'
+                            : 'ri-error-warning-fill'
+                            } text-lg sm:text-xl w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center`}></i>
                           <span className="font-semibold text-sm sm:text-base">{submitMessage}</span>
                         </div>
                       </div>
@@ -580,25 +733,10 @@ function BookingFormContent() {
 
                     <div className="space-y-3 sm:space-y-4 mb-6 sm:mb-8">
                       <div className="flex justify-between items-center pb-3 sm:pb-4 border-b border-white/20">
-                        <span className="text-white/80 text-sm sm:text-base">Base Price</span>
+                        <span className="text-white/80 text-sm sm:text-base">Vehicle Type Price</span>
                         <span className="font-bold text-base sm:text-lg">GHS {priceBreakdown.basePrice.toFixed(2)}</span>
                       </div>
-                      <div className="flex justify-between items-center pb-3 sm:pb-4 border-b border-white/20">
-                        <span className="text-white/80 text-sm sm:text-base">Vehicle Multiplier</span>
-                        <span className="font-bold text-base sm:text-lg">×{priceBreakdown.vehicleMultiplier}</span>
-                      </div>
-                      {priceBreakdown.extraPassengers > 0 && (
-                        <div className="flex justify-between items-center pb-3 sm:pb-4 border-b border-white/20">
-                          <span className="text-white/80 text-sm sm:text-base">Extra Passengers ({priceBreakdown.extraPassengers})</span>
-                          <span className="font-bold text-base sm:text-lg">+GHS {(priceBreakdown.extraPassengers * 15).toFixed(2)}</span>
-                        </div>
-                      )}
-                      {priceBreakdown.extraLuggage > 0 && (
-                        <div className="flex justify-between items-center pb-3 sm:pb-4 border-b border-white/20">
-                          <span className="text-white/80 text-sm sm:text-base">Extra Luggage ({priceBreakdown.extraLuggage})</span>
-                          <span className="font-bold text-base sm:text-lg">+GHS {(priceBreakdown.extraLuggage * 10).toFixed(2)}</span>
-                        </div>
-                      )}
+
                     </div>
 
                     <div className="bg-white/10 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 mb-6 sm:mb-8">
@@ -609,7 +747,7 @@ function BookingFormContent() {
                     <div className="space-y-3 sm:space-y-4 text-xs sm:text-sm text-white/90">
                       <div className="flex items-start gap-2 sm:gap-3 bg-white/10 backdrop-blur-sm p-3 sm:p-4 rounded-xl">
                         <i className="ri-information-line mt-0.5 flex-shrink-0 w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center"></i>
-                        <span>Prices may vary based on traffic and actual distance</span>
+                        <span>Fixed price based on vehicle type selected</span>
                       </div>
                       <div className="flex items-start gap-2 sm:gap-3 bg-white/10 backdrop-blur-sm p-3 sm:p-4 rounded-xl">
                         <i className="ri-shield-check-line mt-0.5 flex-shrink-0 w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center"></i>
@@ -627,11 +765,11 @@ function BookingFormContent() {
                     </div>
                     <p className="text-[#2B2F35] mb-4 sm:mb-6 text-sm sm:text-base">Our team is available 24/7 to assist you with your booking</p>
                     <div className="space-y-2 sm:space-y-3">
-                      <a href="tel:+233XXXXXXXXX" className="flex items-center gap-2 sm:gap-3 text-[#0074C8] hover:text-[#0097F2] font-semibold transition-colors text-sm sm:text-base">
+                      <a href="tel:+233240665648" className="flex items-center gap-2 sm:gap-3 text-[#0074C8] hover:text-[#0097F2] font-semibold transition-colors text-sm sm:text-base">
                         <i className="ri-phone-line w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center"></i>
-                        +233 XX XXX XXXX
+                        +233 240 665 648
                       </a>
-                      <a href="https://wa.me/233XXXXXXXXX" className="flex items-center gap-2 sm:gap-3 text-[#0074C8] hover:text-[#0097F2] font-semibold transition-colors text-sm sm:text-base">
+                      <a href="https://wa.me/233240665648" className="flex items-center gap-2 sm:gap-3 text-[#0074C8] hover:text-[#0097F2] font-semibold transition-colors text-sm sm:text-base">
                         <i className="ri-whatsapp-line w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center"></i>
                         WhatsApp Us
                       </a>
@@ -675,7 +813,7 @@ function BookingFormContent() {
           <div className="absolute top-0 left-0 w-64 sm:w-96 h-64 sm:h-96 bg-[#0074C8] rounded-full blur-3xl"></div>
           <div className="absolute bottom-0 right-0 w-64 sm:w-96 h-64 sm:h-96 bg-[#0097F2] rounded-full blur-3xl"></div>
         </div>
-        
+
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-8 sm:mb-12">
@@ -735,6 +873,128 @@ function BookingFormContent() {
           </div>
         </div>
       </section>
+
+      {/* Success Modal */}
+      {showSuccessModal && paymentSuccessData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-gradient-to-r from-green-500 to-emerald-600 p-6 sm:p-8 text-white rounded-t-2xl sm:rounded-t-3xl">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center bg-white/20 backdrop-blur-sm rounded-full">
+                    <i className="ri-checkbox-circle-fill text-3xl sm:text-4xl"></i>
+                  </div>
+                  <div>
+                    <h2 className="text-2xl sm:text-3xl font-bold">Payment Successful!</h2>
+                    <p className="text-white/90 text-sm sm:text-base">Your booking has been confirmed</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowSuccessModal(false);
+                    setPaymentSuccessData(null);
+                  }}
+                  className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center bg-white/20 hover:bg-white/30 rounded-full transition-colors"
+                >
+                  <i className="ri-close-line text-xl sm:text-2xl"></i>
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 sm:p-8">
+              <div className="mb-6 sm:mb-8">
+                <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4 sm:p-5 mb-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <i className="ri-check-circle-fill text-green-600 text-xl"></i>
+                    <span className="font-bold text-green-800">Booking Confirmed</span>
+                  </div>
+                  <p className="text-sm text-green-700">You will receive a confirmation email shortly!</p>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3 pb-4 border-b border-[#DDE2E9]">
+                    <div className="w-10 h-10 flex items-center justify-center bg-[#0074C8]/10 rounded-lg flex-shrink-0">
+                      <i className="ri-file-list-3-line text-[#0074C8] text-lg"></i>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-[#2B2F35] mb-1">Booking Reference</p>
+                      <p className="font-bold text-[#0A0A0A] text-sm sm:text-base">{paymentSuccessData.reference}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 pb-4 border-b border-[#DDE2E9]">
+                    <div className="w-10 h-10 flex items-center justify-center bg-[#0097F2]/10 rounded-lg flex-shrink-0">
+                      <i className="ri-calendar-check-line text-[#0097F2] text-lg"></i>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-[#2B2F35] mb-1">Pickup Date & Time</p>
+                      <p className="font-bold text-[#0A0A0A] text-sm sm:text-base">{paymentSuccessData.date} at {paymentSuccessData.time}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 pb-4 border-b border-[#DDE2E9]">
+                    <div className="w-10 h-10 flex items-center justify-center bg-[#0074C8]/10 rounded-lg flex-shrink-0">
+                      <i className="ri-car-line text-[#0074C8] text-lg"></i>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-[#2B2F35] mb-1">Vehicle Type</p>
+                      <p className="font-bold text-[#0A0A0A] text-sm sm:text-base">{paymentSuccessData.vehicle}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 pb-4 border-b border-[#DDE2E9]">
+                    <div className="w-10 h-10 flex items-center justify-center bg-[#0097F2]/10 rounded-lg flex-shrink-0">
+                      <i className="ri-map-pin-line text-[#0097F2] text-lg"></i>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-[#2B2F35] mb-1">Pickup Location</p>
+                      <p className="font-bold text-[#0A0A0A] text-sm sm:text-base">{paymentSuccessData.pickup}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 pb-4 border-b border-[#DDE2E9]">
+                    <div className="w-10 h-10 flex items-center justify-center bg-[#0074C8]/10 rounded-lg flex-shrink-0">
+                      <i className="ri-map-pin-2-line text-[#0074C8] text-lg"></i>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-[#2B2F35] mb-1">Destination</p>
+                      <p className="font-bold text-[#0A0A0A] text-sm sm:text-base">{paymentSuccessData.destination}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 flex items-center justify-center bg-gradient-to-br from-[#0074C8] to-[#0097F2] rounded-lg flex-shrink-0">
+                      <i className="ri-money-dollar-circle-line text-white text-lg"></i>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-[#2B2F35] mb-1">Amount Paid</p>
+                      <p className="font-bold text-[#0A0A0A] text-xl sm:text-2xl text-[#0074C8]">GHS {paymentSuccessData.amount}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={() => {
+                    setShowSuccessModal(false);
+                    setPaymentSuccessData(null);
+                  }}
+                  className="flex-1 bg-gradient-to-r from-[#0074C8] to-[#0097F2] text-white py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg hover:shadow-xl transition-all"
+                >
+                  Done
+                </button>
+                <a
+                  href="/"
+                  className="flex-1 bg-[#0A0A0A] text-white py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg hover:bg-[#2B2F35] transition-all text-center"
+                >
+                  Back to Home
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

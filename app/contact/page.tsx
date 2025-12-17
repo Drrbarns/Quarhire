@@ -2,6 +2,13 @@
 
 import { useState } from 'react';
 
+interface ContactFormData {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+}
+
 export default function Contact() {
   const [formData, setFormData] = useState({
     name: '',
@@ -32,7 +39,7 @@ export default function Contact() {
     <main>
       <section className="relative min-h-[500px] flex items-center text-white overflow-hidden">
         <div className="absolute inset-0">
-          <img 
+          <img
             src="https://readdy.ai/api/search-image?query=Professional%20customer%20service%20team%20in%20Ghana%2C%20friendly%20staff%20at%20modern%20office%2C%20contact%20center%20with%20phones%20and%20computers%2C%20welcoming%20business%20environment%2C%20professional%20atmosphere&width=1920&height=500&seq=contact-hero&orientation=landscape"
             alt="Contact Us"
             className="w-full h-full object-cover object-top"
@@ -81,7 +88,10 @@ export default function Contact() {
                     <i className="ri-phone-line text-2xl text-white w-6 h-6 flex items-center justify-center"></i>
                   </div>
                   <h3 className="text-lg font-bold text-[#0A0A0A] mb-2">Call Us Anytime</h3>
-                  <p className="text-[#0074C8] font-semibold text-lg mb-1">+233 123 456 789</p>
+                  <div className="flex flex-col gap-1">
+                    <p className="text-[#0074C8] font-semibold text-lg">+233 240 665 648</p>
+                    <p className="text-[#0074C8] font-semibold text-lg">+233 302 938 717</p>
+                  </div>
                   <p className="text-sm text-[#2B2F35]/70">Available 24/7 for your convenience</p>
                 </div>
 
@@ -101,8 +111,8 @@ export default function Contact() {
                     <i className="ri-whatsapp-line text-2xl text-white w-6 h-6 flex items-center justify-center"></i>
                   </div>
                   <h3 className="text-lg font-bold text-[#0A0A0A] mb-2">WhatsApp</h3>
-                  <a href="https://wa.me/233123456789" target="_blank" rel="noopener noreferrer" className="text-[#25D366] font-semibold text-lg mb-1 block hover:underline cursor-pointer">
-                    +233 123 456 789
+                  <a href="https://wa.me/233240665648" target="_blank" rel="noopener noreferrer" className="text-[#25D366] font-semibold text-lg mb-1 block hover:underline cursor-pointer">
+                    +233 240 665 648
                   </a>
                   <p className="text-sm text-[#2B2F35]/70">Quick chat support</p>
                 </div>
@@ -123,38 +133,50 @@ export default function Contact() {
                 <div className="bg-white p-8 md:p-10 rounded-2xl shadow-xl border border-[#DDE2E9]/50">
                   <h3 className="text-2xl md:text-3xl font-bold text-[#0A0A0A] mb-2">Send Us a Message</h3>
                   <p className="text-[#2B2F35] mb-8">Fill out the form below and we'll get back to you as soon as possible.</p>
-                  
-                  <form id="contact_form" data-readdy-form className="space-y-6" onSubmit={(e) => {
+
+                  <form id="contact_form" data-readdy-form className="space-y-6" onSubmit={async (e) => {
                     e.preventDefault();
                     const form = e.currentTarget;
                     const formData = new FormData(form);
                     const textarea = form.querySelector('textarea[name="message"]') as HTMLTextAreaElement;
-                    
+
                     if (textarea && textarea.value.length > 500) {
                       alert('Message must be 500 characters or less');
                       return;
                     }
-                    
-                    fetch('https://readdy.ai/api/form/d4dl9ue820p5j87gaqqg', {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                      },
-                      body: new URLSearchParams(formData as any).toString()
-                    })
-                    .then(response => {
-                      if (response.ok) {
+
+                    // Prepare data for API
+                    const contactData: ContactFormData = {
+                      name: formData.get('name') as string,
+                      email: formData.get('email') as string,
+                      subject: formData.get('subject') as string,
+                      message: formData.get('message') as string,
+                    };
+
+                    try {
+                      // Send to admin email via our API
+                      const response = await fetch('/api/contact/email', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(contactData),
+                      });
+
+                      const result = await response.json();
+
+                      if (result.success) {
                         alert('Thank you! Your message has been sent successfully. We\'ll get back to you soon.');
                         form.reset();
                         const charCount = document.getElementById('char-count');
                         if (charCount) charCount.textContent = '0';
                       } else {
-                        alert('Sorry, there was an error sending your message. Please try again.');
+                        alert('Sorry, there was an error sending your message. Please try again or contact us directly.');
                       }
-                    })
-                    .catch(() => {
-                      alert('Sorry, there was an error sending your message. Please try again.');
-                    });
+                    } catch (error) {
+                      console.error('Contact form error:', error);
+                      alert('Sorry, there was an error sending your message. Please try again or contact us directly.');
+                    }
                   }}>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
@@ -192,7 +214,7 @@ export default function Contact() {
                           type="tel"
                           name="phone"
                           className="w-full px-4 py-3 border-2 border-[#DDE2E9] rounded-xl focus:ring-2 focus:ring-[#0074C8] focus:border-[#0074C8] transition-all text-sm"
-                          placeholder="+233 123 456 789"
+                          placeholder="+233 240 665 648"
                         />
                       </div>
                       <div>

@@ -34,6 +34,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning={true}>
+      <head>
+        {/* Paystack Inline Script */}
+        <script src="https://js.paystack.co/v1/inline.js"></script>
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${pacifico.variable} antialiased bg-white`}
       >

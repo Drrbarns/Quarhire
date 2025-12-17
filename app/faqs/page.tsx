@@ -6,7 +6,7 @@ export default function FAQs() {
   const faqs = [
     {
       question: 'How do I book a ride with Quarhire?',
-      answer: 'You can book a ride through our online booking form on the website, call us directly at +233 123 456 789, or send us a message on WhatsApp. We recommend booking at least 2 hours before your flight arrival for guaranteed availability.'
+      answer: 'You can book a ride through our online booking form on the website, call us directly at +233 240 665 648 or +233 302 938 717, or send us a message on WhatsApp at +233 240 665 648. We recommend booking at least 2 hours before your flight arrival for guaranteed availability.'
     },
     {
       question: 'Can I book ahead of time?',
@@ -58,20 +58,20 @@ export default function FAQs() {
     <main>
       <section className="relative py-32 bg-[#0A0A0A] text-white overflow-hidden">
         <div className="absolute inset-0">
-          <img 
+          <img
             src="https://readdy.ai/api/search-image?query=Customer%20service%20representative%20helping%20travelers%20at%20Ghana%20airport%2C%20professional%20assistance%20desk%2C%20modern%20airport%20terminal%2C%20helpful%20staff%20providing%20information%2C%20clean%20professional%20environment%2C%20warm%20lighting%2C%20people%20asking%20questions%20and%20getting%20answers%2C%20friendly%20service%20atmosphere&width=1920&height=800&seq=faqs-hero-background&orientation=landscape"
             alt="Customer Service at Airport"
             className="w-full h-full object-cover object-center"
           />
           <div className="absolute inset-0 bg-black/40"></div>
         </div>
-        
+
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-4xl mx-auto text-center">
             <div className="inline-block bg-[#0074C8]/20 backdrop-blur-sm border border-[#0074C8]/30 rounded-full px-6 py-2 mb-6">
               <p className="text-[#0097F2] font-medium">Help Center</p>
             </div>
-            
+
             <h1 className="text-5xl md:text-6xl font-bold mb-6">
               Frequently Asked Questions
             </h1>
@@ -106,20 +106,20 @@ export default function FAQs() {
               <p className="text-[#2B2F35] mb-6">
                 Our customer service team is available 24/7 to help you with any questions or special requirements.
               </p>
-              
+
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <a href="tel:+233123456789" 
-                   className="bg-[#0A0A0A] hover:bg-[#2B2F35] text-white px-6 py-3 rounded-lg font-semibold transition-all whitespace-nowrap cursor-pointer flex items-center justify-center">
+                <a href="tel:+233240665648"
+                  className="bg-[#0A0A0A] hover:bg-[#2B2F35] text-white px-6 py-3 rounded-lg font-semibold transition-all whitespace-nowrap cursor-pointer flex items-center justify-center">
                   <i className="ri-phone-line mr-2 w-4 h-4 flex items-center justify-center"></i>
-                  Call: +233 123 456 789
+                  Call: +233 240 665 648
                 </a>
-                <a href="https://wa.me/233123456789" target="_blank" rel="noopener noreferrer"
-                   className="bg-gradient-to-r from-[#0074C8] to-[#0097F2] hover:shadow-lg text-white px-6 py-3 rounded-lg font-semibold transition-all whitespace-nowrap cursor-pointer flex items-center justify-center">
+                <a href="https://wa.me/233240665648" target="_blank" rel="noopener noreferrer"
+                  className="bg-gradient-to-r from-[#0074C8] to-[#0097F2] hover:shadow-lg text-white px-6 py-3 rounded-lg font-semibold transition-all whitespace-nowrap cursor-pointer flex items-center justify-center">
                   <i className="ri-whatsapp-line mr-2 w-4 h-4 flex items-center justify-center"></i>
                   WhatsApp Us
                 </a>
-                <Link href="/contact" 
-                      className="bg-[#DDE2E9] hover:bg-[#DDE2E9]/70 text-[#0A0A0A] px-6 py-3 rounded-lg font-semibold transition-all whitespace-nowrap cursor-pointer flex items-center justify-center">
+                <Link href="/contact"
+                  className="bg-[#DDE2E9] hover:bg-[#DDE2E9]/70 text-[#0A0A0A] px-6 py-3 rounded-lg font-semibold transition-all whitespace-nowrap cursor-pointer flex items-center justify-center">
                   <i className="ri-mail-line mr-2 w-4 h-4 flex items-center justify-center"></i>
                   Send Email
                 </Link>
@@ -138,9 +138,9 @@ export default function FAQs() {
             <p className="text-xl text-[#2B2F35] mb-8">
               Now that you have all the information you need, book your reliable airport pickup service with Quarhire.
             </p>
-            
-            <Link href="/booking" 
-                  className="bg-gradient-to-r from-[#0074C8] to-[#0097F2] hover:shadow-lg hover:shadow-[#0074C8]/50 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-all transform hover:scale-105 whitespace-nowrap cursor-pointer inline-block">
+
+            <Link href="/booking"
+              className="bg-gradient-to-r from-[#0074C8] to-[#0097F2] hover:shadow-lg hover:shadow-[#0074C8]/50 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-all transform hover:scale-105 whitespace-nowrap cursor-pointer inline-block">
               Book Your Ride Now
             </Link>
           </div>
