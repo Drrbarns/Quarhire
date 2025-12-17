@@ -15,6 +15,14 @@ function BookingFormContent() {
   const searchParams = useSearchParams();
   const serviceParam = searchParams.get('service');
 
+  // Maximum luggage capacity per vehicle type (from services page)
+  const vehicleLuggageMax: { [key: string]: number } = {
+    'economy': 3,        // Sedan: 2-3 bags
+    'suv': 6,            // Premium SUV: 4-6 bags
+    'executive': 4,      // Mini SUV: 3-4 bags
+    'van': 12            // Executive Van: 8-12 bags
+  };
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -28,7 +36,7 @@ function BookingFormContent() {
     date: '',
     time: '',
     passengers: 1,
-    luggage: 1,
+    luggage: vehicleLuggageMax['economy'] || 3, // Default to max luggage for economy vehicle
     specialRequests: ''
   });
 
@@ -113,10 +121,30 @@ function BookingFormContent() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: name === 'passengers' || name === 'luggage' ? parseInt(value) || 0 : value
-    }));
+    
+    // If vehicle type changes, automatically set luggage to max capacity
+    if (name === 'vehicleType') {
+      const maxLuggage = vehicleLuggageMax[value] || 1;
+      setFormData(prev => ({
+        ...prev,
+        vehicleType: value,
+        luggage: maxLuggage
+      }));
+    } else if (name === 'luggage') {
+      // Ensure luggage doesn't exceed max for current vehicle type
+      const luggageValue = parseInt(value) || 0;
+      const maxLuggage = vehicleLuggageMax[formData.vehicleType] || 10;
+      const clampedLuggage = Math.min(Math.max(luggageValue, 0), maxLuggage);
+      setFormData(prev => ({
+        ...prev,
+        luggage: clampedLuggage
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: name === 'passengers' ? parseInt(value) || 0 : value
+      }));
+    }
   };
 
   const handlePaystackPayment = async () => {
@@ -206,7 +234,7 @@ function BookingFormContent() {
           date: '',
           time: '',
           passengers: 1,
-          luggage: 1,
+          luggage: vehicleLuggageMax['economy'] || 3,
           specialRequests: ''
         });
       } else {
@@ -288,7 +316,7 @@ A confirmation email has been sent to ${formData.email}. We'll contact you at ${
             date: '',
             time: '',
             passengers: 1,
-            luggage: 1,
+            luggage: vehicleLuggageMax['economy'] || 3,
             specialRequests: ''
           });
           setSubmitMessage('');
@@ -649,17 +677,27 @@ A confirmation email has been sent to ${formData.email}. We'll contact you at ${
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-bold text-[#0A0A0A] mb-2 sm:mb-3">Number of Luggage *</label>
+                          <label className="block text-sm font-bold text-[#0A0A0A] mb-2 sm:mb-3">
+                            Number of Luggage *
+                            {vehicleLuggageMax[formData.vehicleType] && (
+                              <span className="text-xs font-normal text-[#2B2F35] ml-2">
+                                (Max: {vehicleLuggageMax[formData.vehicleType]} bags)
+                              </span>
+                            )}
+                          </label>
                           <input
                             type="number"
                             min="0"
-                            max="10"
+                            max={vehicleLuggageMax[formData.vehicleType] || 10}
                             required
                             className="w-full px-4 sm:px-5 py-3 sm:py-4 border-2 border-[#DDE2E9] rounded-xl focus:outline-none focus:border-[#0074C8] transition-all text-sm sm:text-base bg-[#DDE2E9]/20"
                             name="luggage"
                             value={formData.luggage}
                             onChange={handleInputChange}
                           />
+                          <p className="text-xs text-[#2B2F35] mt-1.5">
+                            Maximum luggage capacity for {formData.vehicleType === 'economy' ? 'Sedan' : formData.vehicleType === 'executive' ? 'Mini SUV' : formData.vehicleType === 'suv' ? 'Premium SUV' : 'Executive Van'} is {vehicleLuggageMax[formData.vehicleType] || 10} bags. You can decrease this value if needed.
+                          </p>
                         </div>
                       </div>
                     </div>
