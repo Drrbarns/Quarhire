@@ -13,6 +13,7 @@ declare global {
                 amount: number;
                 ref: string;
                 currency?: string;
+                channels?: string[];
                 metadata?: any;
                 callback: (response: { reference: string }) => void;
                 onClose: () => void;
@@ -79,6 +80,7 @@ export const initializePaystackPayment = (config: PaystackConfig) => {
         amount: config.amount,
         ref: config.reference,
         currency: 'GHS',
+        channels: ['card', 'mobile_money'],
         metadata: config.metadata,
         callback: function (response: { reference: string }) {
             config.onSuccess(response.reference);

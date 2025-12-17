@@ -179,7 +179,7 @@ function BookingFormContent() {
         await verifyPayment(reference);
       },
       onClose: () => {
-        setSubmitMessage('Payment cancelled. Your booking is still reserved. You can complete payment later.');
+        setSubmitMessage('Payment cancelled. Your booking was not confirmed. Please try again to complete payment (Card or Mobile Money).');
         setIsSubmitting(false);
       }
     });
@@ -248,7 +248,7 @@ function BookingFormContent() {
     }
   };
 
-  const handleSubmit = async (includePayment: boolean) => {
+  const handleSubmit = async () => {
     setIsSubmitting(true);
     setSubmitMessage('');
 
@@ -258,7 +258,7 @@ function BookingFormContent() {
         submitData.append(key, value.toString());
       });
       submitData.append('estimatedPrice', `GHS ${priceBreakdown.total}`);
-      submitData.append('paymentIncluded', includePayment ? 'Yes' : 'No');
+      submitData.append('paymentIncluded', 'Yes');
 
       // Try to submit to external API
       try {
@@ -279,50 +279,12 @@ function BookingFormContent() {
       }
 
       // Show success message regardless of external API
-      if (includePayment) {
-        setSubmitMessage('Booking saved! Opening payment...');
-        
-        // Small delay to show message, then open Paystack payment
-        setTimeout(() => {
-          handlePaystackPayment();
-        }, 500);
-      } else {
-        // Send reservation confirmation email
-        await sendBookingConfirmationEmail('reserved');
-        
-        // Show booking details to user
-        setSubmitMessage(`Booking reserved successfully!
-        
-Booking Details:
-📅 Date: ${formData.date} at ${formData.time}
-🚗 Vehicle: ${formData.vehicleType === 'economy' ? 'Sedan' : formData.vehicleType === 'executive' ? 'Mini SUV' : formData.vehicleType === 'suv' ? 'Premium SUV' : 'Executive Van'}
-📍 Pickup: ${formData.pickupLocation}
-📍 Destination: ${formData.customDestination || formData.destination}
-💰 Price: GHS ${priceBreakdown.total}
-
-A confirmation email has been sent to ${formData.email}. We'll contact you at ${formData.phone} to confirm your booking!`);
-
-        setTimeout(() => {
-          setFormData({
-            name: '',
-            email: '',
-            phone: '',
-            pickupLocation: 'Kotoka International Airport',
-            destination: '',
-            customDestination: '',
-            airline: '',
-            flightNumber: '',
-            vehicleType: 'economy',
-            date: '',
-            time: '',
-            passengers: 1,
-            luggage: vehicleLuggageMax['economy'] || 3,
-            specialRequests: ''
-          });
-          setSubmitMessage('');
-          setIsSubmitting(false);
-        }, 10000);
-      }
+      setSubmitMessage('Booking saved! Opening secure payment...');
+      
+      // Small delay to show message, then open Paystack payment
+      setTimeout(() => {
+        handlePaystackPayment();
+      }, 500);
 
     } catch (error) {
       console.error('Submission error:', error);
@@ -733,28 +695,21 @@ A confirmation email has been sent to ${formData.email}. We'll contact you at ${
                       </div>
                     )}
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    <div className="grid grid-cols-1 gap-3 sm:gap-4">
                       <button
                         type="button"
-                        onClick={() => handleSubmit(true)}
+                        onClick={handleSubmit}
                         disabled={isSubmitting || (!formData.destination && !formData.customDestination)}
                         className="w-full bg-gradient-to-r from-[#0074C8] to-[#0097F2] text-white py-4 sm:py-5 rounded-xl font-bold text-base sm:text-lg hover:shadow-2xl hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 whitespace-nowrap flex items-center justify-center gap-2 sm:gap-3"
                       >
-                        <i className="ri-bank-card-line text-lg sm:text-xl w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center"></i>
-                        <span className="hidden sm:inline">Book Now & Pay</span>
-                        <span className="sm:hidden">Book & Pay</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleSubmit(false)}
-                        disabled={isSubmitting || (!formData.destination && !formData.customDestination)}
-                        className="w-full bg-[#0A0A0A] text-white py-4 sm:py-5 rounded-xl font-bold text-base sm:text-lg hover:bg-[#2B2F35] hover:shadow-xl hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 whitespace-nowrap flex items-center justify-center gap-2 sm:gap-3"
-                      >
-                        <i className="ri-bookmark-line text-lg sm:text-xl w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center"></i>
-                        <span className="hidden sm:inline">Reserve Now (No Payment)</span>
-                        <span className="sm:hidden">Reserve Now</span>
+                        <i className="ri-secure-payment-line text-lg sm:text-xl w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center"></i>
+                        <span className="hidden sm:inline">Pay & Confirm Booking</span>
+                        <span className="sm:hidden">Pay & Confirm</span>
                       </button>
                     </div>
+                    <p className="mt-3 text-xs text-[#2B2F35] text-center">
+                      Cashless only: pay by card or Mobile Money.
+                    </p>
                   </form>
                 </div>
               </div>
