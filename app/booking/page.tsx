@@ -15,14 +15,6 @@ function BookingFormContent() {
   const searchParams = useSearchParams();
   const serviceParam = searchParams.get('service');
 
-  // Maximum luggage capacity per vehicle type (from services page)
-  const vehicleLuggageMax: { [key: string]: number } = {
-    'economy': 3,        // Sedan: 2-3 bags
-    'suv': 6,            // Premium SUV: 4-6 bags
-    'executive': 4,      // Mini SUV: 3-4 bags
-    'van': 12            // Executive Van: 8-12 bags
-  };
-
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -36,22 +28,12 @@ function BookingFormContent() {
     date: '',
     time: '',
     passengers: 1,
-    luggage: vehicleLuggageMax['economy'] || 3, // Default to max luggage for economy vehicle
+    luggage: 1,
     specialRequests: ''
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [paymentSuccessData, setPaymentSuccessData] = useState<{
-    reference: string;
-    amount: string;
-    date: string;
-    time: string;
-    vehicle: string;
-    pickup: string;
-    destination: string;
-  } | null>(null);
 
 
   // Fixed pricing per vehicle type
@@ -73,182 +55,15 @@ function BookingFormContent() {
 
   const priceBreakdown = calculatePrice();
 
-  const sendBookingConfirmationEmail = async (paymentStatus: 'paid' | 'reserved', paymentReference?: string) => {
-    try {
-      const bookingReference = paymentReference || `QRHRE-${Date.now()}`;
-      
-      const emailData = {
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        pickupLocation: formData.pickupLocation,
-        destination: formData.destination,
-        customDestination: formData.customDestination,
-        airline: formData.airline,
-        flightNumber: formData.flightNumber,
-        vehicleType: formData.vehicleType,
-        date: formData.date,
-        time: formData.time,
-        passengers: formData.passengers,
-        luggage: formData.luggage,
-        specialRequests: formData.specialRequests,
-        estimatedPrice: `GHS ${priceBreakdown.total}`,
-        bookingReference: bookingReference,
-        paymentStatus: paymentStatus,
-        paymentReference: paymentReference,
-      };
-
-      const response = await fetch('/api/booking/email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(emailData),
-      });
-
-      const result = await response.json();
-      
-      if (result.success) {
-        console.log('Booking confirmation email sent successfully');
-      } else {
-        console.warn('Email sending failed:', result.message);
-      }
-    } catch (error) {
-      console.error('Error sending booking email:', error);
-      // Don't show error to user - email failure shouldn't block the booking
-    }
-  };
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    
-    // If vehicle type changes, automatically set luggage to max capacity
-    if (name === 'vehicleType') {
-      const maxLuggage = vehicleLuggageMax[value] || 1;
-      setFormData(prev => ({
-        ...prev,
-        vehicleType: value,
-        luggage: maxLuggage
-      }));
-    } else if (name === 'luggage') {
-      // Ensure luggage doesn't exceed max for current vehicle type
-      const luggageValue = parseInt(value) || 0;
-      const maxLuggage = vehicleLuggageMax[formData.vehicleType] || 10;
-      const clampedLuggage = Math.min(Math.max(luggageValue, 0), maxLuggage);
-      setFormData(prev => ({
-        ...prev,
-        luggage: clampedLuggage
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: name === 'passengers' ? parseInt(value) || 0 : value
-      }));
-    }
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === 'passengers' || name === 'luggage' ? parseInt(value) || 0 : value
+    }));
   };
 
-  const handlePaystackPayment = async () => {
-    const paymentReference = generatePaymentReference();
-    const amountInKobo = convertToKobo(parseFloat(priceBreakdown.total));
-    
-    const bookingData: BookingData = {
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      pickupLocation: formData.pickupLocation,
-      destination: formData.destination,
-      customDestination: formData.customDestination,
-      airline: formData.airline,
-      flightNumber: formData.flightNumber,
-      vehicleType: formData.vehicleType,
-      date: formData.date,
-      time: formData.time,
-      passengers: formData.passengers,
-      luggage: formData.luggage,
-      specialRequests: formData.specialRequests,
-      estimatedPrice: `GHS ${priceBreakdown.total}`
-    };
-
-    const handler = initializePaystackPayment({
-      email: formData.email,
-      amount: amountInKobo,
-      reference: paymentReference,
-      metadata: formatBookingMetadata(bookingData),
-      onSuccess: async (reference: string) => {
-        // Verify payment on backend
-        await verifyPayment(reference);
-      },
-      onClose: () => {
-        setSubmitMessage('Payment cancelled. Your booking was not confirmed. Please try again to complete payment (Card or Mobile Money).');
-        setIsSubmitting(false);
-      }
-    });
-
-    if (handler) {
-      handler.openIframe();
-    } else {
-      setSubmitMessage('Payment system not configured. Please contact support at +233 240 665 648');
-      setIsSubmitting(false);
-    }
-  };
-
-  const verifyPayment = async (reference: string) => {
-    try {
-      const response = await fetch('/api/paystack/verify', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ reference })
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        // Store success data and show modal
-        setPaymentSuccessData({
-          reference: reference,
-          amount: priceBreakdown.total,
-          date: formData.date,
-          time: formData.time,
-          vehicle: formData.vehicleType === 'economy' ? 'Sedan' : formData.vehicleType === 'executive' ? 'Mini SUV' : formData.vehicleType === 'suv' ? 'Premium SUV' : 'Executive Van',
-          pickup: formData.pickupLocation,
-          destination: formData.customDestination || formData.destination
-        });
-        setShowSuccessModal(true);
-        
-        // Send confirmation email
-        await sendBookingConfirmationEmail('paid', reference);
-        
-        // Reset form after successful payment
-        setFormData({
-          name: '',
-          email: '',
-          phone: '',
-          pickupLocation: 'Kotoka International Airport',
-          destination: '',
-          customDestination: '',
-          airline: '',
-          flightNumber: '',
-          vehicleType: 'economy',
-          date: '',
-          time: '',
-          passengers: 1,
-          luggage: vehicleLuggageMax['economy'] || 3,
-          specialRequests: ''
-        });
-      } else {
-        setSubmitMessage('Payment verification failed. Please contact support at +233 240 665 648');
-      }
-    } catch (error) {
-      console.error('Payment verification error:', error);
-      setSubmitMessage('Payment verification error. Please contact support at +233 240 665 648');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleSubmit = async () => {
+  const handleSubmit = async (includePayment: boolean) => {
     setIsSubmitting(true);
     setSubmitMessage('');
 
@@ -258,7 +73,7 @@ function BookingFormContent() {
         submitData.append(key, value.toString());
       });
       submitData.append('estimatedPrice', `GHS ${priceBreakdown.total}`);
-      submitData.append('paymentIncluded', 'Yes');
+      submitData.append('paymentIncluded', includePayment ? 'Yes' : 'No');
 
       // Try to submit to external API
       try {
@@ -279,16 +94,52 @@ function BookingFormContent() {
       }
 
       // Show success message regardless of external API
-      setSubmitMessage('Booking saved! Opening secure payment...');
-      
-      // Small delay to show message, then open Paystack payment
+      if (includePayment) {
+        setSubmitMessage('Booking saved! Opening payment window...');
+
+        setTimeout(() => {
+          // For now, open the payment page (will be replaced with Paystack popup later)
+          const bookingRef = `QRHRE-${Date.now()}`;
+          window.open(`https://paystack.com/pay/quarHire-booking?amount=${parseFloat(priceBreakdown.total) * 100}&email=${formData.email}&reference=${bookingRef}`, '_blank');
+        }, 1000);
+      } else {
+        // Show booking details to user
+        setSubmitMessage(`Booking reserved successfully!
+        
+Booking Details:
+📅 Date: ${formData.date} at ${formData.time}
+🚗 Vehicle: ${formData.vehicleType === 'economy' ? 'Sedan' : formData.vehicleType === 'executive' ? 'Mini SUV' : formData.vehicleType === 'suv' ? 'Premium SUV' : 'Executive Van'}
+📍 Pickup: ${formData.pickupLocation}
+📍 Destination: ${formData.customDestination || formData.destination}
+💰 Price: GHS ${priceBreakdown.total}
+
+We'll contact you at ${formData.phone} to confirm your booking!`);
+      }
+
       setTimeout(() => {
-        handlePaystackPayment();
-      }, 500);
+        setFormData({
+          name: '',
+          email: '',
+          phone: '',
+          pickupLocation: 'Kotoka International Airport',
+          destination: '',
+          customDestination: '',
+          airline: '',
+          flightNumber: '',
+          vehicleType: 'economy',
+          date: '',
+          time: '',
+          passengers: 1,
+          luggage: 1,
+          specialRequests: ''
+        });
+        setSubmitMessage('');
+      }, includePayment ? 3000 : 10000);
 
     } catch (error) {
       console.error('Submission error:', error);
       setSubmitMessage('An error occurred. Please try again or call us at +233 240 665 648');
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -455,7 +306,6 @@ function BookingFormContent() {
                                   <option value="Odorkor">Odorkor</option>
                                   <option value="Mallam">Mallam</option>
                                   <option value="Mallam Junction">Mallam Junction</option>
-                                  <option value="Kasoa">Kasoa</option>
                                   <option value="Weija">Weija</option>
                                   <option value="Sakumono">Sakumono</option>
                                   <option value="Teshie-Nungua">Teshie-Nungua</option>
@@ -486,13 +336,9 @@ function BookingFormContent() {
                                   <option value="Darkuman">Darkuman</option>
                                   <option value="Kokrobite">Kokrobite</option>
                                   <option value="Bortianor">Bortianor</option>
-                                  <option value="Prampram">Prampram</option>
                                   <option value="Spintex">Spintex</option>
                                   <option value="Madina">Madina</option>
                                   <option value="Aburi">Aburi</option>
-                                  <option value="Akosombo">Akosombo</option>
-                                  <option value="Cape Coast">Cape Coast</option>
-                                  <option value="Kumasi">Kumasi</option>
                                 </select>
                                 <i className="ri-arrow-down-s-line absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-[#0074C8] pointer-events-none text-lg sm:text-xl w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center"></i>
                               </div>
@@ -639,27 +485,17 @@ function BookingFormContent() {
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-bold text-[#0A0A0A] mb-2 sm:mb-3">
-                            Number of Luggage *
-                            {vehicleLuggageMax[formData.vehicleType] && (
-                              <span className="text-xs font-normal text-[#2B2F35] ml-2">
-                                (Max: {vehicleLuggageMax[formData.vehicleType]} bags)
-                              </span>
-                            )}
-                          </label>
+                          <label className="block text-sm font-bold text-[#0A0A0A] mb-2 sm:mb-3">Number of Luggage *</label>
                           <input
                             type="number"
                             min="0"
-                            max={vehicleLuggageMax[formData.vehicleType] || 10}
+                            max="10"
                             required
                             className="w-full px-4 sm:px-5 py-3 sm:py-4 border-2 border-[#DDE2E9] rounded-xl focus:outline-none focus:border-[#0074C8] transition-all text-sm sm:text-base bg-[#DDE2E9]/20"
                             name="luggage"
                             value={formData.luggage}
                             onChange={handleInputChange}
                           />
-                          <p className="text-xs text-[#2B2F35] mt-1.5">
-                            Maximum luggage capacity for {formData.vehicleType === 'economy' ? 'Sedan' : formData.vehicleType === 'executive' ? 'Mini SUV' : formData.vehicleType === 'suv' ? 'Premium SUV' : 'Executive Van'} is {vehicleLuggageMax[formData.vehicleType] || 10} bags. You can decrease this value if needed.
-                          </p>
                         </div>
                       </div>
                     </div>
@@ -695,21 +531,28 @@ function BookingFormContent() {
                       </div>
                     )}
 
-                    <div className="grid grid-cols-1 gap-3 sm:gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                       <button
                         type="button"
-                        onClick={handleSubmit}
+                        onClick={() => handleSubmit(true)}
                         disabled={isSubmitting || (!formData.destination && !formData.customDestination)}
                         className="w-full bg-gradient-to-r from-[#0074C8] to-[#0097F2] text-white py-4 sm:py-5 rounded-xl font-bold text-base sm:text-lg hover:shadow-2xl hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 whitespace-nowrap flex items-center justify-center gap-2 sm:gap-3"
                       >
-                        <i className="ri-secure-payment-line text-lg sm:text-xl w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center"></i>
-                        <span className="hidden sm:inline">Pay & Confirm Booking</span>
-                        <span className="sm:hidden">Pay & Confirm</span>
+                        <i className="ri-bank-card-line text-lg sm:text-xl w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center"></i>
+                        <span className="hidden sm:inline">Book Now & Pay</span>
+                        <span className="sm:hidden">Book & Pay</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSubmit(false)}
+                        disabled={isSubmitting || (!formData.destination && !formData.customDestination)}
+                        className="w-full bg-[#0A0A0A] text-white py-4 sm:py-5 rounded-xl font-bold text-base sm:text-lg hover:bg-[#2B2F35] hover:shadow-xl hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 whitespace-nowrap flex items-center justify-center gap-2 sm:gap-3"
+                      >
+                        <i className="ri-bookmark-line text-lg sm:text-xl w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center"></i>
+                        <span className="hidden sm:inline">Reserve Now (No Payment)</span>
+                        <span className="sm:hidden">Reserve Now</span>
                       </button>
                     </div>
-                    <p className="mt-3 text-xs text-[#2B2F35] text-center">
-                      Cashless only: pay by card or Mobile Money.
-                    </p>
                   </form>
                 </div>
               </div>
@@ -866,128 +709,6 @@ function BookingFormContent() {
           </div>
         </div>
       </section>
-
-      {/* Success Modal */}
-      {showSuccessModal && paymentSuccessData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div className="bg-gradient-to-r from-green-500 to-emerald-600 p-6 sm:p-8 text-white rounded-t-2xl sm:rounded-t-3xl">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center bg-white/20 backdrop-blur-sm rounded-full">
-                    <i className="ri-checkbox-circle-fill text-3xl sm:text-4xl"></i>
-                  </div>
-                  <div>
-                    <h2 className="text-2xl sm:text-3xl font-bold">Payment Successful!</h2>
-                    <p className="text-white/90 text-sm sm:text-base">Your booking has been confirmed</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => {
-                    setShowSuccessModal(false);
-                    setPaymentSuccessData(null);
-                  }}
-                  className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center bg-white/20 hover:bg-white/30 rounded-full transition-colors"
-                >
-                  <i className="ri-close-line text-xl sm:text-2xl"></i>
-                </button>
-              </div>
-            </div>
-
-            <div className="p-6 sm:p-8">
-              <div className="mb-6 sm:mb-8">
-                <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4 sm:p-5 mb-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <i className="ri-check-circle-fill text-green-600 text-xl"></i>
-                    <span className="font-bold text-green-800">Booking Confirmed</span>
-                  </div>
-                  <p className="text-sm text-green-700">You will receive a confirmation email shortly!</p>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3 pb-4 border-b border-[#DDE2E9]">
-                    <div className="w-10 h-10 flex items-center justify-center bg-[#0074C8]/10 rounded-lg flex-shrink-0">
-                      <i className="ri-file-list-3-line text-[#0074C8] text-lg"></i>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-xs text-[#2B2F35] mb-1">Booking Reference</p>
-                      <p className="font-bold text-[#0A0A0A] text-sm sm:text-base">{paymentSuccessData.reference}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3 pb-4 border-b border-[#DDE2E9]">
-                    <div className="w-10 h-10 flex items-center justify-center bg-[#0097F2]/10 rounded-lg flex-shrink-0">
-                      <i className="ri-calendar-check-line text-[#0097F2] text-lg"></i>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-xs text-[#2B2F35] mb-1">Pickup Date & Time</p>
-                      <p className="font-bold text-[#0A0A0A] text-sm sm:text-base">{paymentSuccessData.date} at {paymentSuccessData.time}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3 pb-4 border-b border-[#DDE2E9]">
-                    <div className="w-10 h-10 flex items-center justify-center bg-[#0074C8]/10 rounded-lg flex-shrink-0">
-                      <i className="ri-car-line text-[#0074C8] text-lg"></i>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-xs text-[#2B2F35] mb-1">Vehicle Type</p>
-                      <p className="font-bold text-[#0A0A0A] text-sm sm:text-base">{paymentSuccessData.vehicle}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3 pb-4 border-b border-[#DDE2E9]">
-                    <div className="w-10 h-10 flex items-center justify-center bg-[#0097F2]/10 rounded-lg flex-shrink-0">
-                      <i className="ri-map-pin-line text-[#0097F2] text-lg"></i>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-xs text-[#2B2F35] mb-1">Pickup Location</p>
-                      <p className="font-bold text-[#0A0A0A] text-sm sm:text-base">{paymentSuccessData.pickup}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3 pb-4 border-b border-[#DDE2E9]">
-                    <div className="w-10 h-10 flex items-center justify-center bg-[#0074C8]/10 rounded-lg flex-shrink-0">
-                      <i className="ri-map-pin-2-line text-[#0074C8] text-lg"></i>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-xs text-[#2B2F35] mb-1">Destination</p>
-                      <p className="font-bold text-[#0A0A0A] text-sm sm:text-base">{paymentSuccessData.destination}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 flex items-center justify-center bg-gradient-to-br from-[#0074C8] to-[#0097F2] rounded-lg flex-shrink-0">
-                      <i className="ri-money-dollar-circle-line text-white text-lg"></i>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-xs text-[#2B2F35] mb-1">Amount Paid</p>
-                      <p className="font-bold text-[#0A0A0A] text-xl sm:text-2xl text-[#0074C8]">GHS {paymentSuccessData.amount}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-3">
-                <button
-                  onClick={() => {
-                    setShowSuccessModal(false);
-                    setPaymentSuccessData(null);
-                  }}
-                  className="flex-1 bg-gradient-to-r from-[#0074C8] to-[#0097F2] text-white py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg hover:shadow-xl transition-all"
-                >
-                  Done
-                </button>
-                <a
-                  href="/"
-                  className="flex-1 bg-[#0A0A0A] text-white py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg hover:bg-[#2B2F35] transition-all text-center"
-                >
-                  Back to Home
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </main>
   );
 }

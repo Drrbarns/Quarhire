@@ -226,27 +226,34 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             <TestimonialCard 
-              name="Sarah Johnson"
-              role="Business Traveler"
+              name="Richard Parker"
+              role="Family Traveler"
               image="https://readdy.ai/api/search-image?query=Professional%20business%20woman%20smiling%20portrait%2C%20confident%20female%20executive%2C%20modern%20professional%20headshot%2C%20clean%20simple%20background%2C%20natural%20lighting%2C%20corporate%20professional%20photo&width=200&height=200&seq=testimonial-1&orientation=squarish"
               rating={5}
               text="Exceptional service! The driver was waiting for me at arrivals with a name sign, and the car was spotless. Made my business trip to Accra so much smoother."
             />
             <TestimonialCard 
-              name="Michael Osei"
-              role="Tourist"
+              name="Nana Dako"
+              role="Business Traveler"
               image="https://readdy.ai/api/search-image?query=Friendly%20African%20man%20smiling%20portrait%2C%20casual%20professional%20male%2C%20warm%20welcoming%20expression%2C%20clean%20simple%20background%2C%20natural%20lighting%2C%20authentic%20portrait%20photo&width=200&height=200&seq=testimonial-2&orientation=squarish"
               rating={5}
               text="First time in Ghana and Quarhire made everything easy. Professional, punctual, and the driver even gave me great tips about the city. Highly recommend!"
             />
             <TestimonialCard 
-              name="Emma Williams"
+              name="Becky Adu"
               role="Family Traveler"
               image="https://readdy.ai/api/search-image?query=Cheerful%20woman%20smiling%20portrait%2C%20friendly%20female%20traveler%2C%20warm%20genuine%20smile%2C%20clean%20simple%20background%2C%20natural%20lighting%2C%20authentic%20portrait%20photo&width=200&height=200&seq=testimonial-3&orientation=squarish"
               rating={5}
               text="Traveling with kids can be stressful, but Quarhire made it effortless. Spacious vehicle, child seats available, and the driver was so patient and helpful."
+            />
+            <TestimonialCard 
+              name="Alex Daizer"
+              role="Tourist"
+              image="https://readdy.ai/api/search-image?query=Cheerful%20woman%20smiling%20portrait%2C%20friendly%20female%20traveler%2C%20warm%20genuine%20smile%2C%20clean%20simple%20background%2C%20natural%20lighting%2C%20authentic%20portrait%20photo&width=200&height=200&seq=testimonial-4&orientation=squarish"
+              rating={5}
+              text="Amazing experience from start to finish! The online booking was seamless, and the driver was professional and friendly. Perfect introduction to Ghana."
             />
           </div>
         </div>
