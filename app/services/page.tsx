@@ -502,7 +502,7 @@ export default function Services() {
             <div className="group bg-white rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 border border-[#DDE2E9]/30">
               <div className="relative overflow-hidden">
                 <img
-                  src="/Honda-CR-V-1920x960.jpg"
+                  src="https://readdy.ai/api/search-image?query=Luxury%20black%20executive%20sedan%20parked%20at%20Kotoka%20International%20Airport%20Ghana%2C%20premium%20business%20class%20vehicle%2C%20leather%20interior%20visible%20through%20windows%2C%20professional%20airport%20transfer%20service%2C%20clean%20and%20polished%20exterior%2C%20bright%20daylight%20photography%2C%20high-end%20transportation%20for%20executives&width=600&height=300&seq=executive-sedan-fleet&orientation=landscape"
                   alt="Mini SUV"
                   className="w-full h-64 object-cover object-center group-hover:scale-110 transition-transform duration-700"
                 />

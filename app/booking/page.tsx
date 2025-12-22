@@ -20,6 +20,7 @@ function BookingFormContent() {
     email: '',
     phone: '',
     pickupLocation: 'Kotoka International Airport',
+    customPickupLocation: '',
     destination: serviceParam || '',
     customDestination: '',
     airline: '',
@@ -109,7 +110,7 @@ function BookingFormContent() {
 Booking Details:
 📅 Date: ${formData.date} at ${formData.time}
 🚗 Vehicle: ${formData.vehicleType === 'economy' ? 'Sedan' : formData.vehicleType === 'executive' ? 'Mini SUV' : formData.vehicleType === 'suv' ? 'Premium SUV' : 'Executive Van'}
-📍 Pickup: ${formData.pickupLocation}
+📍 Pickup: ${formData.customPickupLocation || formData.pickupLocation}
 📍 Destination: ${formData.customDestination || formData.destination}
 💰 Price: GHS ${priceBreakdown.total}
 
@@ -122,6 +123,7 @@ We'll contact you at ${formData.phone} to confirm your booking!`);
           email: '',
           phone: '',
           pickupLocation: 'Kotoka International Airport',
+          customPickupLocation: '',
           destination: '',
           customDestination: '',
           airline: '',
@@ -261,6 +263,22 @@ We'll contact you at ${formData.phone} to confirm your booking!`);
                             <i className="ri-lock-line absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-[#0074C8] pointer-events-none text-lg sm:text-xl w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center"></i>
                           </div>
                           <p className="text-xs text-[#2B2F35] mt-1.5">Currently operating from Kotoka International Airport only</p>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-bold text-[#0A0A0A] mb-2 sm:mb-3">Custom Pickup Location</label>
+                          <div className="relative">
+                            <input
+                              type="text"
+                              name="customPickupLocation"
+                              className="w-full px-4 sm:px-5 py-3 sm:py-4 border-2 border-[#DDE2E9] rounded-xl focus:outline-none focus:border-[#0074C8] transition-all text-sm sm:text-base bg-white"
+                              placeholder="Enter your specific pickup address (e.g., Hotel name, street address)..."
+                              value={formData.customPickupLocation}
+                              onChange={handleInputChange}
+                            />
+                            <i className="ri-map-pin-add-line absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-[#0074C8] pointer-events-none text-lg sm:text-xl w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center"></i>
+                          </div>
+                          <p className="text-xs text-[#2B2F35] mt-1.5">Optional: Specify your exact pickup location within the airport area or nearby</p>
                         </div>
 
                         <div>

@@ -22,11 +22,7 @@ export default function FAQs() {
     },
     {
       question: 'How do payments work?',
-      answer: 'We are fully cashless. Payments are made online during booking via our secure checkout. We accept debit/credit cards and Ghana Mobile Money (MTN MoMo, Vodafone Cash, AirtelTigo Money).'
-    },
-    {
-      question: 'Do you accept cash payments?',
-      answer: 'No. To keep things safe and convenient, QuarHire does not accept cash payments. Please pay online by card or Mobile Money during booking.'
+      answer: 'We accept cash payments in Ghanaian Cedis and mobile money transfers (MTN Mobile Money, Vodafone Cash, AirtelTigo Money). Payment is typically made after the service is completed. For corporate clients, we can arrange invoicing and bank transfers.'
     },
     {
       question: 'What if I can\'t find my driver at the airport?',
@@ -99,54 +95,6 @@ export default function FAQs() {
               <p className="text-xl text-[#2B2F35]">
                 Here are answers to the most frequently asked questions about our services. Can't find what you're looking for? Contact us directly.
               </p>
-            </div>
-
-            <div className="mb-10 bg-white rounded-2xl shadow-lg border border-[#DDE2E9] overflow-hidden">
-              <div className="bg-gradient-to-r from-[#0074C8] to-[#0097F2] px-6 py-5 text-white">
-                <div className="flex items-center justify-center gap-3">
-                  <div className="w-10 h-10 flex items-center justify-center bg-white/20 rounded-xl">
-                    <i className="ri-bank-card-line text-xl w-5 h-5 flex items-center justify-center"></i>
-                  </div>
-                  <h3 className="text-xl md:text-2xl font-bold">Cashless Payments</h3>
-                </div>
-                <p className="text-white/90 mt-2 text-center">
-                  Pay securely online — we do not accept cash.
-                </p>
-              </div>
-              <div className="p-6 md:p-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex items-start gap-3 p-4 rounded-xl border border-[#DDE2E9] bg-[#F8F9FA]">
-                    <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-[#0074C8]/10 text-[#0074C8] flex-shrink-0">
-                      <i className="ri-bank-card-line text-xl w-5 h-5 flex items-center justify-center"></i>
-                    </div>
-                    <div>
-                      <div className="font-bold text-[#0A0A0A]">Card Payments</div>
-                      <div className="text-sm text-[#2B2F35]">Visa / Mastercard and supported debit cards</div>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3 p-4 rounded-xl border border-[#DDE2E9] bg-[#F8F9FA]">
-                    <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-[#0097F2]/10 text-[#0097F2] flex-shrink-0">
-                      <i className="ri-smartphone-line text-xl w-5 h-5 flex items-center justify-center"></i>
-                    </div>
-                    <div>
-                      <div className="font-bold text-[#0A0A0A]">Mobile Money</div>
-                      <div className="text-sm text-[#2B2F35]">MTN MoMo / Vodafone Cash / AirtelTigo Money</div>
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-6 text-center">
-                  <Link
-                    href="/booking"
-                    className="inline-flex items-center gap-2 bg-gradient-to-r from-[#0074C8] to-[#0097F2] hover:shadow-lg hover:shadow-[#0074C8]/50 text-white px-7 py-3.5 rounded-xl font-semibold transition-all transform hover:scale-105 whitespace-nowrap cursor-pointer"
-                  >
-                    <i className="ri-secure-payment-line w-4 h-4 flex items-center justify-center"></i>
-                    Pay & Book Now
-                  </Link>
-                  <p className="text-xs text-[#2B2F35] mt-3">
-                    Payments are processed securely via Paystack.
-                  </p>
-                </div>
-              </div>
             </div>
 
             <FAQAccordion faqs={faqs} />

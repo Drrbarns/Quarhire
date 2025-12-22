@@ -3,27 +3,6 @@
  * Handles payment initialization and verification
  */
 
-// Type declarations for PaystackPop
-declare global {
-    interface Window {
-        PaystackPop: {
-            setup: (options: {
-                key: string;
-                email: string;
-                amount: number;
-                ref: string;
-                currency?: string;
-                channels?: string[];
-                metadata?: any;
-                callback: (response: { reference: string }) => void;
-                onClose: () => void;
-            }) => {
-                openIframe: () => void;
-            };
-        };
-    }
-}
-
 export interface PaystackConfig {
     email: string;
     amount: number; // Amount in Kobo (multiply by 100)
@@ -59,10 +38,11 @@ export interface BookingData {
 }
 
 /**
- * Initialize Paystack payment popup (inline API payment)
+ * Initialize Paystack payment popup
  */
 export const initializePaystackPayment = (config: PaystackConfig) => {
-    if (typeof window === 'undefined' || !window.PaystackPop) {
+    // @ts-ignore - PaystackPop is loaded via script tag
+    if (typeof PaystackPop === 'undefined') {
         console.error('Paystack SDK not loaded. Please add the Paystack script.');
         return null;
     }
@@ -74,15 +54,14 @@ export const initializePaystackPayment = (config: PaystackConfig) => {
         return null;
     }
 
-    const handler = window.PaystackPop.setup({
+    // @ts-ignore
+    const handler = PaystackPop.setup({
         key: publicKey,
         email: config.email,
         amount: config.amount,
         ref: config.reference,
-        currency: 'GHS',
-        channels: ['card', 'mobile_money'],
         metadata: config.metadata,
-        callback: function (response: { reference: string }) {
+        callback: function (response: any) {
             config.onSuccess(response.reference);
         },
         onClose: function () {

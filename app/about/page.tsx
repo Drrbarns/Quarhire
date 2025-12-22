@@ -34,6 +34,33 @@ export default function About() {
     }
   ];
 
+  const team = [
+    {
+      name: 'Kwame Mensah',
+      role: 'Founder & CEO',
+      experience: '15+ years in transportation',
+      description: 'Passionate about providing exceptional airport transfer services with a focus on customer satisfaction and operational excellence.'
+    },
+    {
+      name: 'Akosua Darko',
+      role: 'Operations Manager',
+      experience: '10+ years in logistics',
+      description: 'Ensures smooth operations and maintains our high standards of service quality and driver training programs.'
+    },
+    {
+      name: 'Samuel Osei',
+      role: 'Fleet Manager',
+      experience: '12+ years in fleet management',
+      description: 'Oversees vehicle maintenance, safety standards, and ensures our fleet is always ready for reliable service.'
+    },
+    {
+      name: 'Grace Asante',
+      role: 'Customer Service Lead',
+      experience: '8+ years in hospitality',
+      description: 'Dedicated to providing exceptional customer support and ensuring every passenger has a memorable experience.'
+    }
+  ];
+
   const achievements = [
     {
       number: '500+',
@@ -270,6 +297,38 @@ export default function About() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="py-24 bg-[#0A0A0A] text-white relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-20 left-20 w-72 h-72 bg-[#0074C8] rounded-full blur-3xl"></div>
+          <div className="absolute bottom-20 right-20 w-96 h-96 bg-[#0097F2] rounded-full blur-3xl"></div>
+        </div>
+        
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold mb-6">
+              Meet Our Team
+            </h2>
+            <p className="text-xl text-[#DDE2E9] max-w-2xl mx-auto">
+              The dedicated professionals behind QuarHire's exceptional service and commitment to passenger satisfaction.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {team.map((member, index) => (
+              <div key={index} className="group text-center bg-white/5 backdrop-blur-sm p-8 rounded-2xl border border-white/10 hover:bg-white/10 transition-all">
+                <div className="w-32 h-32 bg-gradient-to-br from-[#0074C8] to-[#0097F2] rounded-full mx-auto mb-6 flex items-center justify-center group-hover:scale-110 transition-transform shadow-xl">
+                  <i className="ri-user-line text-4xl text-white w-10 h-10 flex items-center justify-center"></i>
+                </div>
+                <h3 className="text-xl font-bold mb-2">{member.name}</h3>
+                <p className="text-[#0097F2] font-semibold mb-2">{member.role}</p>
+                <p className="text-[#DDE2E9]/80 text-sm mb-4 font-medium">{member.experience}</p>
+                <p className="text-[#DDE2E9] text-sm leading-relaxed">{member.description}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
