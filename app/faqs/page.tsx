@@ -1,6 +1,18 @@
 
 import FAQAccordion from '@/components/FAQAccordion';
 import Link from 'next/link';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'FAQs - Frequently Asked Questions | QuarHire Airport Transfer',
+  description: 'Find answers to common questions about QuarHire airport pickup services in Ghana. Learn about booking, payments, service areas, cancellation policy, and more.',
+  openGraph: {
+    title: 'QuarHire FAQs - Your Airport Transfer Questions Answered',
+    description: 'Get instant answers about our airport transfer services including booking process, payments, flight tracking, and service coverage in Accra, Ghana.',
+    url: 'https://quarhire.com/faqs',
+    images: ['/Quarhire2.png'],
+  },
+};
 
 export default function FAQs() {
   const faqs = [

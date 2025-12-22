@@ -1,4 +1,16 @@
 import FeatureCard from '@/components/FeatureCard';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Our Services - Airport Transfer & Transportation in Ghana',
+  description: 'Comprehensive airport transfer services in Accra, Ghana. From airport pickups to corporate transport, hotel transfers, and 24/7 service. Professional drivers and premium vehicles.',
+  openGraph: {
+    title: 'QuarHire Services - Complete Airport Transfer Solutions in Ghana',
+    description: 'Explore our range of airport transfer services including pickups, corporate transport, group rides, and 24/7 availability in Accra, Ghana.',
+    url: 'https://quarhire.com/services',
+    images: ['/Quarhire2.png'],
+  },
+};
 
 export default function Services() {
   const services = [

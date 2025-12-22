@@ -1,4 +1,16 @@
 import FeatureCard from '@/components/FeatureCard';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'About Us - QuarHire Airport Transfer Service',
+  description: 'Learn about QuarHire, your trusted partner for reliable airport transfers in Accra, Ghana. Professional drivers, premium vehicles, and exceptional service since 2015.',
+  openGraph: {
+    title: 'About QuarHire - Professional Airport Transfer Service in Ghana',
+    description: 'Discover the story behind QuarHire and our commitment to providing safe, reliable airport transfers in Accra with exceptional customer service.',
+    url: 'https://quarhire.com/about',
+    images: ['/Quarhire2.png'],
+  },
+};
 
 export default function About() {
   const values = [
@@ -34,32 +46,7 @@ export default function About() {
     }
   ];
 
-  const team = [
-    {
-      name: 'Kwame Mensah',
-      role: 'Founder & CEO',
-      experience: '15+ years in transportation',
-      description: 'Passionate about providing exceptional airport transfer services with a focus on customer satisfaction and operational excellence.'
-    },
-    {
-      name: 'Akosua Darko',
-      role: 'Operations Manager',
-      experience: '10+ years in logistics',
-      description: 'Ensures smooth operations and maintains our high standards of service quality and driver training programs.'
-    },
-    {
-      name: 'Samuel Osei',
-      role: 'Fleet Manager',
-      experience: '12+ years in fleet management',
-      description: 'Oversees vehicle maintenance, safety standards, and ensures our fleet is always ready for reliable service.'
-    },
-    {
-      name: 'Grace Asante',
-      role: 'Customer Service Lead',
-      experience: '8+ years in hospitality',
-      description: 'Dedicated to providing exceptional customer support and ensuring every passenger has a memorable experience.'
-    }
-  ];
+
 
   const achievements = [
     {
@@ -92,20 +79,20 @@ export default function About() {
     <main>
       <section className="relative py-32 bg-[#0A0A0A] text-white overflow-hidden">
         <div className="absolute inset-0">
-          <img 
+          <img
             src="https://readdy.ai/api/search-image?query=Professional%20airport%20transfer%20service%20at%20Kotoka%20International%20Airport%20Ghana%20during%20golden%20hour%2C%20modern%20luxury%20vehicles%20parked%20at%20terminal%2C%20warm%20sunset%20lighting%20creating%20beautiful%20atmosphere%2C%20premium%20transportation%20service%2C%20wide%20angle%20view%20of%20airport%20with%20planes%20and%20vehicles%2C%20cinematic%20lighting%2C%20high-end%20automotive%20photography&width=1920&height=800&seq=about-hero-background&orientation=landscape"
             alt="QuarHire Airport Transfer Service"
             className="w-full h-full object-cover object-center"
           />
           <div className="absolute inset-0 bg-black/40"></div>
         </div>
-        
+
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-4xl mx-auto text-center">
             <div className="inline-block bg-[#0074C8]/20 backdrop-blur-sm border border-[#0074C8]/30 rounded-full px-6 py-2 mb-6">
               <p className="text-[#0097F2] font-medium">Our Story</p>
             </div>
-            
+
             <h1 className="text-5xl md:text-6xl font-bold mb-6">
               About QuarHire
             </h1>
@@ -121,18 +108,18 @@ export default function About() {
 
       <section className="py-24 bg-white relative">
         <div className="absolute top-0 right-0 w-64 h-64 bg-[#0074C8]/5 rounded-full blur-3xl"></div>
-        
+
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
               <div className="inline-block bg-[#DDE2E9]/50 rounded-full px-4 py-2 mb-6">
                 <span className="text-[#0A0A0A] font-semibold text-sm uppercase tracking-wide">Our Journey</span>
               </div>
-              
+
               <h2 className="text-4xl md:text-5xl font-bold text-[#0A0A0A] mb-8">
                 Built on Trust & Excellence
               </h2>
-              
+
               <div className="space-y-6 text-[#2B2F35] leading-relaxed text-lg">
                 <p>
                   QuarHire was founded with a simple mission: to make airport transfers in Accra effortless, reliable, and comfortable for every traveler. We recognized the need for a professional transportation service that understands the unique challenges of airport pickups and the importance of first impressions.
@@ -144,7 +131,7 @@ export default function About() {
                   Today, we continue to innovate and improve our services, incorporating flight-tracking technology, expanding our fleet, and training our drivers to provide the warm Ghanaian hospitality that makes every arrival special.
                 </p>
               </div>
-              
+
               <div className="mt-8 flex gap-4">
                 <div className="bg-gradient-to-r from-[#0074C8] to-[#0097F2] text-white px-6 py-3 rounded-lg font-bold">
                   Est. 2015
@@ -154,17 +141,17 @@ export default function About() {
                 </div>
               </div>
             </div>
-            
+
             <div className="relative">
               <div className="absolute -top-8 -right-8 w-32 h-32 bg-[#0074C8]/20 rounded-3xl -z-10"></div>
               <div className="absolute -bottom-8 -left-8 w-40 h-40 bg-[#DDE2E9]/50 rounded-3xl -z-10"></div>
-              
-              <img 
+
+              <img
                 src="https://readdy.ai/api/search-image?query=Professional%20smiling%20African%20taxi%20driver%20in%20smart%20uniform%20standing%20beside%20modern%20luxury%20black%20sedan%20at%20Kotoka%20International%20Airport%20Accra%20Ghana%2C%20welcoming%20posture%20with%20open%20arms%2C%20bright%20sunny%20day%2C%20airport%20terminal%20visible%20in%20background%2C%20high%20quality%20professional%20photography%2C%20warm%20and%20inviting%20atmosphere%2C%20clean%20modern%20vehicle&width=600&height=400&seq=about-driver-new&orientation=landscape"
                 alt="QuarHire professional driver"
                 className="rounded-2xl shadow-2xl w-full h-[500px] object-cover object-top relative z-10"
               />
-              
+
               <div className="absolute bottom-8 left-8 bg-white p-6 rounded-xl shadow-xl max-w-xs z-20">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 flex items-center justify-center bg-[#0074C8]/20 rounded-full">
@@ -226,7 +213,7 @@ export default function About() {
                 <div className="absolute top-4 right-4 w-12 h-12 flex items-center justify-center bg-[#0074C8]/20 rounded-full">
                   <i className={`${achievement.icon} text-[#0074C8] text-xl w-5 h-5 flex items-center justify-center`}></i>
                 </div>
-                
+
                 <div className="text-4xl md:text-5xl font-bold text-[#0074C8] mb-3 group-hover:scale-110 transition-transform">
                   {achievement.number}
                 </div>
@@ -243,14 +230,14 @@ export default function About() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
             <div className="order-2 md:order-1">
               <div className="relative">
-                <img 
+                <img
                   src="https://readdy.ai/api/search-image?query=Fleet%20of%20premium%20black%20sedans%20and%20SUVs%20lined%20up%20at%20Kotoka%20International%20Airport%20Ghana%2C%20modern%20well-maintained%20luxury%20vehicles%2C%20professional%20airport%20transfer%20service%2C%20bright%20daylight%20photography%2C%20clean%20polished%20cars%2C%20airport%20terminal%20building%20visible%2C%20organized%20professional%20presentation%2C%20high-end%20transportation%20service&width=600&height=400&seq=about-fleet-new&orientation=landscape"
                   alt="QuarHire fleet"
                   className="rounded-2xl shadow-2xl w-full h-96 object-cover object-top"
                 />
               </div>
             </div>
-            
+
             <div className="order-1 md:order-2">
               <h3 className="text-3xl font-bold text-[#0A0A0A] mb-8">
                 What Sets Us Apart
@@ -265,7 +252,7 @@ export default function About() {
                     <p className="text-[#2B2F35]">We monitor your flight status to ensure timely pickups, even with delays.</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-start gap-4 bg-[#DDE2E9]/30 p-5 rounded-xl hover:bg-[#DDE2E9]/50 transition-colors">
                   <div className="w-10 h-10 flex items-center justify-center bg-[#0097F2] rounded-lg flex-shrink-0">
                     <i className="ri-user-smile-line text-white text-lg w-5 h-5 flex items-center justify-center"></i>
@@ -275,7 +262,7 @@ export default function About() {
                     <p className="text-[#2B2F35]">Professional drivers wait at arrivals with name boards for easy identification.</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-start gap-4 bg-[#DDE2E9]/30 p-5 rounded-xl hover:bg-[#DDE2E9]/50 transition-colors">
                   <div className="w-10 h-10 flex items-center justify-center bg-[#0074C8] rounded-lg flex-shrink-0">
                     <i className="ri-map-pin-line text-white text-lg w-5 h-5 flex items-center justify-center"></i>
@@ -285,7 +272,7 @@ export default function About() {
                     <p className="text-[#2B2F35]">Our drivers know Accra inside out, ensuring efficient routes and local insights.</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-start gap-4 bg-[#DDE2E9]/30 p-5 rounded-xl hover:bg-[#DDE2E9]/50 transition-colors">
                   <div className="w-10 h-10 flex items-center justify-center bg-[#0097F2] rounded-lg flex-shrink-0">
                     <i className="ri-smartphone-line text-white text-lg w-5 h-5 flex items-center justify-center"></i>
@@ -301,44 +288,12 @@ export default function About() {
         </div>
       </section>
 
-      <section className="py-24 bg-[#0A0A0A] text-white relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-20 w-72 h-72 bg-[#0074C8] rounded-full blur-3xl"></div>
-          <div className="absolute bottom-20 right-20 w-96 h-96 bg-[#0097F2] rounded-full blur-3xl"></div>
-        </div>
-        
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">
-              Meet Our Team
-            </h2>
-            <p className="text-xl text-[#DDE2E9] max-w-2xl mx-auto">
-              The dedicated professionals behind QuarHire's exceptional service and commitment to passenger satisfaction.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {team.map((member, index) => (
-              <div key={index} className="group text-center bg-white/5 backdrop-blur-sm p-8 rounded-2xl border border-white/10 hover:bg-white/10 transition-all">
-                <div className="w-32 h-32 bg-gradient-to-br from-[#0074C8] to-[#0097F2] rounded-full mx-auto mb-6 flex items-center justify-center group-hover:scale-110 transition-transform shadow-xl">
-                  <i className="ri-user-line text-4xl text-white w-10 h-10 flex items-center justify-center"></i>
-                </div>
-                <h3 className="text-xl font-bold mb-2">{member.name}</h3>
-                <p className="text-[#0097F2] font-semibold mb-2">{member.role}</p>
-                <p className="text-[#DDE2E9]/80 text-sm mb-4 font-medium">{member.experience}</p>
-                <p className="text-[#DDE2E9] text-sm leading-relaxed">{member.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       <section className="py-24 bg-gradient-to-br from-[#0074C8] to-[#0097F2] relative overflow-hidden">
         <div className="absolute inset-0">
           <div className="absolute top-0 left-0 w-96 h-96 bg-white/10 rounded-full -ml-48 -mt-48"></div>
           <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#0A0A0A]/10 rounded-full -mr-48 -mb-48"></div>
         </div>
-        
+
         <div className="container mx-auto px-4 text-center relative z-10">
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
             Ready to Experience the QuarHire Difference?
@@ -347,13 +302,13 @@ export default function About() {
             Join thousands of satisfied passengers who trust QuarHire for their airport transfers in Accra.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="/booking" 
-               className="bg-white hover:bg-[#DDE2E9] text-[#0074C8] px-10 py-5 rounded-xl font-semibold text-lg transition-all transform hover:scale-105 whitespace-nowrap cursor-pointer inline-flex items-center justify-center gap-3 shadow-xl">
+            <a href="/booking"
+              className="bg-white hover:bg-[#DDE2E9] text-[#0074C8] px-10 py-5 rounded-xl font-semibold text-lg transition-all transform hover:scale-105 whitespace-nowrap cursor-pointer inline-flex items-center justify-center gap-3 shadow-xl">
               <i className="ri-calendar-check-line text-xl w-5 h-5 flex items-center justify-center"></i>
               Book Your Transfer
             </a>
-            <a href="/contact" 
-               className="border-3 border-white hover:bg-white hover:text-[#0074C8] text-white px-10 py-5 rounded-xl font-semibold text-lg transition-all transform hover:scale-105 whitespace-nowrap cursor-pointer inline-flex items-center justify-center gap-3 shadow-xl">
+            <a href="/contact"
+              className="border-3 border-white hover:bg-white hover:text-[#0074C8] text-white px-10 py-5 rounded-xl font-semibold text-lg transition-all transform hover:scale-105 whitespace-nowrap cursor-pointer inline-flex items-center justify-center gap-3 shadow-xl">
               <i className="ri-message-3-line text-xl w-5 h-5 flex items-center justify-center"></i>
               Contact Us
             </a>
