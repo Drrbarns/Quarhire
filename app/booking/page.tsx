@@ -262,7 +262,7 @@ We'll contact you at ${formData.phone} to confirm your booking!`);
                             />
                             <i className="ri-lock-line absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-[#0074C8] pointer-events-none text-lg sm:text-xl w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center"></i>
                           </div>
-                          <p className="text-xs text-[#2B2F35] mt-1.5">Currently operating from Kotoka International Airport only</p>
+
                         </div>
 
                         <div>
@@ -603,10 +603,7 @@ We'll contact you at ${formData.phone} to confirm your booking!`);
                         <i className="ri-information-line mt-0.5 flex-shrink-0 w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center"></i>
                         <span>Fixed price based on vehicle type selected</span>
                       </div>
-                      <div className="flex items-start gap-2 sm:gap-3 bg-white/10 backdrop-blur-sm p-3 sm:p-4 rounded-xl">
-                        <i className="ri-shield-check-line mt-0.5 flex-shrink-0 w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center"></i>
-                        <span>All bookings include insurance and professional service</span>
-                      </div>
+
                     </div>
                   </div>
 
