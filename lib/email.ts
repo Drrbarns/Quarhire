@@ -1,9 +1,10 @@
 /**
  * Email Utility
- * Handles email sending for booking confirmations
+ * Handles email sending for booking confirmations and contact forms
+ * Uses Resend for reliable email delivery on Vercel
  */
 
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
 export interface BookingEmailData {
   name: string;
@@ -34,45 +35,41 @@ export interface ContactFormData {
 }
 
 /**
- * Create email transporter
+ * Get Resend client instance
  */
-const createTransporter = () => {
-  // For Gmail, you can use OAuth2 or App Password
-  // For other providers, adjust accordingly
-  const emailHost = process.env.EMAIL_HOST || 'smtp.gmail.com';
-  const emailPort = parseInt(process.env.EMAIL_PORT || '587');
-  const emailUser = process.env.EMAIL_USER;
-  const emailPassword = process.env.EMAIL_PASSWORD;
-  const emailFrom = process.env.EMAIL_FROM || emailUser;
+const getResendClient = () => {
+  const apiKey = process.env.RESEND_API_KEY;
 
-  if (!emailUser || !emailPassword) {
-    console.warn('Email credentials not configured. Emails will not be sent.');
+  if (!apiKey) {
+    console.warn('RESEND_API_KEY not configured. Emails will not be sent.');
     return null;
   }
 
-  return nodemailer.createTransport({
-    host: emailHost,
-    port: emailPort,
-    secure: emailPort === 465, // true for 465, false for other ports
-    auth: {
-      user: emailUser,
-      pass: emailPassword,
-    },
-  });
+  return new Resend(apiKey);
+};
+
+/**
+ * Get the from email address
+ * Uses verified domain or Resend's testing domain
+ */
+const getFromEmail = () => {
+  // If you have a verified domain, use it
+  // Otherwise, use Resend's testing domain for development
+  return process.env.EMAIL_FROM || 'Quarhire <onboarding@resend.dev>';
 };
 
 /**
  * Generate HTML email template for booking confirmation
  */
 const generateBookingEmailHTML = (data: BookingEmailData): string => {
-  const vehicleName = 
+  const vehicleName =
     data.vehicleType === 'economy' ? 'Sedan' :
-    data.vehicleType === 'executive' ? 'Mini SUV' :
-    data.vehicleType === 'suv' ? 'Premium SUV' :
-    'Executive Van';
+      data.vehicleType === 'executive' ? 'Mini SUV' :
+        data.vehicleType === 'suv' ? 'Premium SUV' :
+          'Executive Van';
 
-  const paymentStatusText = data.paymentStatus === 'paid' 
-    ? '✅ Payment Confirmed' 
+  const paymentStatusText = data.paymentStatus === 'paid'
+    ? '✅ Payment Confirmed'
     : '⏳ Payment Pending (Reservation Only)';
 
   return `
@@ -244,11 +241,11 @@ const generateBookingEmailHTML = (data: BookingEmailData): string => {
  * Generate admin notification email HTML
  */
 const generateAdminNotificationHTML = (data: BookingEmailData): string => {
-  const vehicleName = 
+  const vehicleName =
     data.vehicleType === 'economy' ? 'Sedan' :
-    data.vehicleType === 'executive' ? 'Mini SUV' :
-    data.vehicleType === 'suv' ? 'Premium SUV' :
-    'Executive Van';
+      data.vehicleType === 'executive' ? 'Mini SUV' :
+        data.vehicleType === 'suv' ? 'Premium SUV' :
+          'Executive Van';
 
   return `
 <!DOCTYPE html>
@@ -388,59 +385,33 @@ const generateAdminNotificationHTML = (data: BookingEmailData): string => {
  */
 export const sendBookingEmail = async (data: BookingEmailData): Promise<{ customerSent: boolean; adminSent: boolean }> => {
   const result = { customerSent: false, adminSent: false };
-  
+
   try {
-    const transporter = createTransporter();
-    
-    if (!transporter) {
-      console.warn('Email transporter not available. Skipping email send.');
+    const resend = getResendClient();
+
+    if (!resend) {
+      console.warn('Resend client not available. Skipping email send.');
       return result;
     }
 
-    const emailFrom = process.env.EMAIL_FROM || process.env.EMAIL_USER || 'noreply@quarhire.com';
+    const fromEmail = getFromEmail();
     const adminEmail = process.env.ADMIN_EMAIL;
 
     // Send confirmation email to customer
     try {
-      const customerMailOptions = {
-        from: `Quarhire <${emailFrom}>`,
+      const { data: emailData, error } = await resend.emails.send({
+        from: fromEmail,
         to: data.email,
         subject: `Booking ${data.paymentStatus === 'paid' ? 'Confirmation' : 'Reservation'} - ${data.bookingReference || 'Quarhire'}`,
         html: generateBookingEmailHTML(data),
-        text: `
-Booking ${data.paymentStatus === 'paid' ? 'Confirmation' : 'Reservation'}
+      });
 
-Dear ${data.name},
-
-Thank you for choosing Quarhire! Your ${data.paymentStatus === 'paid' ? 'booking has been confirmed' : 'reservation has been received'}.
-
-Booking Details:
-- Booking Reference: ${data.bookingReference || 'N/A'}
-${data.paymentReference ? `- Payment Reference: ${data.paymentReference}\n` : ''}
-- Pickup Date & Time: ${data.date} at ${data.time}
-- Pickup Location: ${data.pickupLocation}
-- Destination: ${data.customDestination || data.destination}
-- Vehicle Type: ${data.vehicleType === 'economy' ? 'Sedan' : data.vehicleType === 'executive' ? 'Mini SUV' : data.vehicleType === 'suv' ? 'Premium SUV' : 'Executive Van'}
-- Passengers: ${data.passengers}
-- Luggage: ${data.luggage}
-${data.airline ? `- Airline: ${data.airline}\n` : ''}${data.flightNumber ? `- Flight Number: ${data.flightNumber}\n` : ''}
-- Estimated Price: ${data.estimatedPrice}
-${data.specialRequests ? `- Special Requests: ${data.specialRequests}\n` : ''}
-
-${data.paymentStatus === 'reserved' ? '\n⏰ Payment Pending: Please complete your payment to confirm your booking.\n' : ''}
-
-Need Help?
-Phone: +233 240 665 648
-WhatsApp: https://wa.me/233240665648
-
-Best regards,
-The Quarhire Team
-        `.trim(),
-      };
-
-      const customerInfo = await transporter.sendMail(customerMailOptions);
-      console.log('Customer confirmation email sent:', customerInfo.messageId);
-      result.customerSent = true;
+      if (error) {
+        console.error('Error sending customer email:', error);
+      } else {
+        console.log('Customer confirmation email sent:', emailData?.id);
+        result.customerSent = true;
+      }
     } catch (error) {
       console.error('Error sending customer email:', error);
     }
@@ -448,39 +419,19 @@ The Quarhire Team
     // Send notification email to admin
     if (adminEmail) {
       try {
-        const adminMailOptions = {
-          from: `Quarhire <${emailFrom}>`,
+        const { data: emailData, error } = await resend.emails.send({
+          from: fromEmail,
           to: adminEmail,
           subject: `New Booking ${data.paymentStatus === 'paid' ? '(Paid)' : '(Reservation)'} - ${data.bookingReference || 'Quarhire'}`,
           html: generateAdminNotificationHTML(data),
-          text: `
-New Booking Received
+        });
 
-${data.paymentStatus === 'paid' ? '✅ PAID' : '⏰ RESERVATION (Payment Pending)'}
-
-Customer Information:
-- Name: ${data.name}
-- Email: ${data.email}
-- Phone: ${data.phone}
-
-Booking Details:
-- Booking Reference: ${data.bookingReference || 'N/A'}
-${data.paymentReference ? `- Payment Reference: ${data.paymentReference}\n` : ''}
-- Pickup Date & Time: ${data.date} at ${data.time}
-- Pickup Location: ${data.pickupLocation}
-- Destination: ${data.customDestination || data.destination}
-- Vehicle Type: ${data.vehicleType === 'economy' ? 'Sedan' : data.vehicleType === 'executive' ? 'Mini SUV' : data.vehicleType === 'suv' ? 'Premium SUV' : 'Executive Van'}
-- Passengers: ${data.passengers}
-- Luggage: ${data.luggage}
-${data.airline ? `- Airline: ${data.airline}\n` : ''}${data.flightNumber ? `- Flight Number: ${data.flightNumber}\n` : ''}
-- Estimated Price: ${data.estimatedPrice}
-${data.specialRequests ? `- Special Requests: ${data.specialRequests}\n` : ''}
-          `.trim(),
-        };
-
-        const adminInfo = await transporter.sendMail(adminMailOptions);
-        console.log('Admin notification email sent:', adminInfo.messageId);
-        result.adminSent = true;
+        if (error) {
+          console.error('Error sending admin email:', error);
+        } else {
+          console.log('Admin notification email sent:', emailData?.id);
+          result.adminSent = true;
+        }
       } catch (error) {
         console.error('Error sending admin email:', error);
       }
@@ -588,14 +539,14 @@ const generateContactFormHTML = (data: ContactFormData): string => {
  */
 export const sendContactFormEmail = async (data: ContactFormData): Promise<boolean> => {
   try {
-    const transporter = createTransporter();
-    
-    if (!transporter) {
-      console.warn('Email transporter not available. Skipping email send.');
+    const resend = getResendClient();
+
+    if (!resend) {
+      console.warn('Resend client not available. Skipping email send.');
       return false;
     }
 
-    const emailFrom = process.env.EMAIL_FROM || process.env.EMAIL_USER || 'noreply@quarhire.com';
+    const fromEmail = getFromEmail();
     const adminEmail = process.env.ADMIN_EMAIL;
 
     if (!adminEmail) {
@@ -603,34 +554,23 @@ export const sendContactFormEmail = async (data: ContactFormData): Promise<boole
       return false;
     }
 
-    const mailOptions = {
-      from: `Quarhire Contact Form <${emailFrom}>`,
+    const { data: emailData, error } = await resend.emails.send({
+      from: fromEmail,
       to: adminEmail,
       replyTo: data.email,
       subject: `Contact Form: ${data.subject}`,
       html: generateContactFormHTML(data),
-      text: `
-New Contact Form Submission
+    });
 
-Contact Information:
-- Name: ${data.name}
-- Email: ${data.email}
-- Subject: ${data.subject}
+    if (error) {
+      console.error('Error sending contact form email:', error);
+      return false;
+    }
 
-Message:
-${data.message}
-
----
-Reply to: ${data.email}
-      `.trim(),
-    };
-
-    const info = await transporter.sendMail(mailOptions);
-    console.log('Contact form email sent successfully:', info.messageId);
+    console.log('Contact form email sent successfully:', emailData?.id);
     return true;
   } catch (error) {
     console.error('Error sending contact form email:', error);
     return false;
   }
 };
-
