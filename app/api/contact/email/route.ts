@@ -32,9 +32,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Send email
-    const emailSent = await sendContactFormEmail(data);
+    const result = await sendContactFormEmail(data);
 
-    if (emailSent) {
+    if (result.success) {
       return NextResponse.json({
         success: true,
         message: 'Contact form submitted successfully',
@@ -43,7 +43,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          message: 'Email could not be sent. Please check email configuration.',
+          message: result.error || 'Email could not be sent. Please check email configuration.',
+          details: result.details,
         },
         { status: 500 }
       );
@@ -56,6 +57,7 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
 
 
 

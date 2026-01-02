@@ -171,7 +171,10 @@ export default function Contact() {
                         const charCount = document.getElementById('char-count');
                         if (charCount) charCount.textContent = '0';
                       } else {
-                        alert('Sorry, there was an error sending your message. Please try again or contact us directly.');
+                        // Show more detailed error message
+                        const errorMsg = result.message || result.error || 'Sorry, there was an error sending your message.';
+                        console.error('Contact form error:', result);
+                        alert(`${errorMsg}\n\nPlease try again or contact us directly at +233 240 665 648.`);
                       }
                     } catch (error) {
                       console.error('Contact form error:', error);

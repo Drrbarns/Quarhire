@@ -537,22 +537,26 @@ const generateContactFormHTML = (data: ContactFormData): string => {
 /**
  * Send contact form email to admin
  */
-export const sendContactFormEmail = async (data: ContactFormData): Promise<boolean> => {
+export const sendContactFormEmail = async (data: ContactFormData): Promise<{ success: boolean; error?: string; details?: any }> => {
   try {
     const resend = getResendClient();
 
     if (!resend) {
-      console.warn('Resend client not available. Skipping email send.');
-      return false;
+      const errorMsg = 'Resend client not available. RESEND_API_KEY may be missing or invalid.';
+      console.warn(errorMsg);
+      return { success: false, error: errorMsg };
     }
 
     const fromEmail = getFromEmail();
     const adminEmail = process.env.ADMIN_EMAIL;
 
     if (!adminEmail) {
-      console.warn('ADMIN_EMAIL not configured. Cannot send contact form email.');
-      return false;
+      const errorMsg = 'ADMIN_EMAIL not configured. Please set ADMIN_EMAIL in your environment variables.';
+      console.warn(errorMsg);
+      return { success: false, error: errorMsg };
     }
+
+    console.log('Attempting to send email:', { from: fromEmail, to: adminEmail, subject: data.subject });
 
     const { data: emailData, error } = await resend.emails.send({
       from: fromEmail,
@@ -563,14 +567,22 @@ export const sendContactFormEmail = async (data: ContactFormData): Promise<boole
     });
 
     if (error) {
-      console.error('Error sending contact form email:', error);
-      return false;
+      console.error('Resend API error:', error);
+      return { 
+        success: false, 
+        error: `Email service error: ${error.message || 'Unknown error'}`,
+        details: error 
+      };
     }
 
     console.log('Contact form email sent successfully:', emailData?.id);
-    return true;
-  } catch (error) {
+    return { success: true };
+  } catch (error: any) {
     console.error('Error sending contact form email:', error);
-    return false;
+    return { 
+      success: false, 
+      error: error.message || 'Failed to send email',
+      details: error 
+    };
   }
 };
