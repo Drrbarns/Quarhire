@@ -600,16 +600,6 @@ We'll contact you at ${formData.phone} to confirm your booking!`);
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                       <button
                         type="button"
-                        onClick={() => handleSubmit(true)}
-                        disabled={isSubmitting || (!formData.destination && !formData.customDestination)}
-                        className="w-full bg-gradient-to-r from-[#0074C8] to-[#0097F2] text-white py-4 sm:py-5 rounded-xl font-bold text-base sm:text-lg hover:shadow-2xl hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 whitespace-nowrap flex items-center justify-center gap-2 sm:gap-3"
-                      >
-                        <i className="ri-bank-card-line text-lg sm:text-xl w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center"></i>
-                        <span className="hidden sm:inline">Book Now & Pay</span>
-                        <span className="sm:hidden">Book & Pay</span>
-                      </button>
-                      <button
-                        type="button"
                         onClick={() => handleSubmit(false)}
                         disabled={isSubmitting || (!formData.destination && !formData.customDestination)}
                         className="w-full bg-[#0A0A0A] text-white py-4 sm:py-5 rounded-xl font-bold text-base sm:text-lg hover:bg-[#2B2F35] hover:shadow-xl hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 whitespace-nowrap flex items-center justify-center gap-2 sm:gap-3"
@@ -617,6 +607,16 @@ We'll contact you at ${formData.phone} to confirm your booking!`);
                         <i className="ri-bookmark-line text-lg sm:text-xl w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center"></i>
                         <span className="hidden sm:inline">Reserve Now (No Payment)</span>
                         <span className="sm:hidden">Reserve Now</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSubmit(true)}
+                        disabled={isSubmitting || (!formData.destination && !formData.customDestination)}
+                        className="w-full bg-gradient-to-r from-[#0074C8] to-[#0097F2] text-white py-4 sm:py-5 rounded-xl font-bold text-base sm:text-lg hover:shadow-2xl hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 whitespace-nowrap flex items-center justify-center gap-2 sm:gap-3"
+                      >
+                        <i className="ri-bank-card-line text-lg sm:text-xl w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center"></i>
+                        <span className="hidden sm:inline">Book Now & Pay</span>
+                        <span className="sm:hidden">Book & Pay</span>
                       </button>
                     </div>
                   </form>
