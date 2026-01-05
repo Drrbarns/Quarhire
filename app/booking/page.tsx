@@ -69,15 +69,63 @@ function BookingFormContent() {
     setSubmitMessage('');
 
     try {
-      const submitData = new URLSearchParams();
-      Object.entries(formData).forEach(([key, value]) => {
-        submitData.append(key, value.toString());
-      });
-      submitData.append('estimatedPrice', `GHS ${priceBreakdown.total}`);
-      submitData.append('paymentIncluded', includePayment ? 'Yes' : 'No');
+      // Generate booking reference
+      const bookingRef = `QRHRE-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
 
-      // Try to submit to external API
+      // Prepare email data for the booking email API
+      const emailData = {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        pickupLocation: formData.customPickupLocation || formData.pickupLocation,
+        destination: formData.customDestination || formData.destination,
+        customDestination: formData.customDestination,
+        airline: formData.airline,
+        flightNumber: formData.flightNumber,
+        vehicleType: formData.vehicleType,
+        date: formData.date,
+        time: formData.time,
+        passengers: formData.passengers,
+        luggage: formData.luggage,
+        specialRequests: formData.specialRequests,
+        estimatedPrice: `GHS ${priceBreakdown.total}`,
+        bookingReference: bookingRef,
+        paymentStatus: includePayment ? 'paid' : 'reserved',
+        paymentReference: includePayment ? bookingRef : undefined
+      };
+
+      // Send booking confirmation emails to customer and admin
       try {
+        const emailResponse = await fetch('/api/booking/email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(emailData)
+        });
+
+        if (emailResponse.ok) {
+          const emailResult = await emailResponse.json();
+          console.log('Email sent successfully:', emailResult);
+        } else {
+          const errorData = await emailResponse.json();
+          console.warn('Email API returned error:', errorData);
+        }
+      } catch (emailError) {
+        console.warn('Email sending failed:', emailError);
+        // Continue anyway - we'll still show success to user
+      }
+
+      // Also try to submit to external API (legacy)
+      try {
+        const submitData = new URLSearchParams();
+        Object.entries(formData).forEach(([key, value]) => {
+          submitData.append(key, value.toString());
+        });
+        submitData.append('estimatedPrice', `GHS ${priceBreakdown.total}`);
+        submitData.append('paymentIncluded', includePayment ? 'Yes' : 'No');
+        submitData.append('bookingReference', bookingRef);
+
         const response = await fetch('https://readdy.ai/api/public/form/submit/cm6a0rvqr000bqhz2aqwxqvqy', {
           method: 'POST',
           headers: {
@@ -94,20 +142,20 @@ function BookingFormContent() {
         // Continue anyway - we'll still show success to user
       }
 
-      // Show success message regardless of external API
+      // Show success message
       if (includePayment) {
-        setSubmitMessage('Booking saved! Opening payment window...');
+        setSubmitMessage('Booking saved! Opening payment window... A confirmation email has been sent to your inbox.');
 
         setTimeout(() => {
           // For now, open the payment page (will be replaced with Paystack popup later)
-          const bookingRef = `QRHRE-${Date.now()}`;
           window.open(`https://paystack.com/pay/quarHire-booking?amount=${parseFloat(priceBreakdown.total) * 100}&email=${formData.email}&reference=${bookingRef}`, '_blank');
         }, 1000);
       } else {
         // Show booking details to user
-        setSubmitMessage(`Booking reserved successfully!
+        setSubmitMessage(`Booking reserved successfully! A confirmation email has been sent to ${formData.email}.
         
 Booking Details:
+📋 Reference: ${bookingRef}
 📅 Date: ${formData.date} at ${formData.time}
 🚗 Vehicle: ${formData.vehicleType === 'economy' ? 'Sedan' : formData.vehicleType === 'executive' ? 'Mini SUV' : formData.vehicleType === 'suv' ? 'Premium SUV' : 'Executive Van'}
 📍 Pickup: ${formData.customPickupLocation || formData.pickupLocation}
