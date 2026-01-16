@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 
 interface BookingData {
@@ -27,76 +27,90 @@ interface BookingData {
 function SuccessContent() {
     const searchParams = useSearchParams();
     const reference = searchParams.get('ref');
-    const checkoutId = searchParams.get('checkoutid');
     const [paymentStatus, setPaymentStatus] = useState<'checking' | 'success' | 'pending' | 'failed'>('checking');
     const [bookingData, setBookingData] = useState<BookingData | null>(null);
-    const [emailSent, setEmailSent] = useState(false);
+    const [emailStatus, setEmailStatus] = useState<'pending' | 'sending' | 'sent' | 'failed'>('pending');
+    const emailSentRef = useRef(false);
 
     useEffect(() => {
-        // Retrieve booking data from localStorage
-        const storedBooking = localStorage.getItem('pendingBooking');
-        let bookingInfo: BookingData | null = null;
+        const processPaymentAndSendEmail = async () => {
+            // Prevent double execution
+            if (emailSentRef.current) return;
 
-        if (storedBooking) {
+            // Get booking data from localStorage
+            const storedBooking = localStorage.getItem('pendingBooking');
+
+            if (!storedBooking) {
+                console.log('No stored booking found in localStorage');
+                if (reference) {
+                    setPaymentStatus('success');
+                } else {
+                    setPaymentStatus('pending');
+                }
+                return;
+            }
+
+            let bookingInfo: BookingData;
             try {
                 bookingInfo = JSON.parse(storedBooking);
                 setBookingData(bookingInfo);
+                console.log('Booking data loaded:', bookingInfo);
             } catch (e) {
                 console.error('Failed to parse stored booking:', e);
+                setPaymentStatus('pending');
+                return;
             }
-        }
 
-        // Process payment confirmation
-        const processPayment = async () => {
-            // If we have a reference, Hubtel has redirected back after payment
-            // Hubtel only redirects to returnUrl on successful payment initiation
+            // If we have a reference, payment was completed on Hubtel
             if (reference) {
                 // Short delay for UX
-                await new Promise(resolve => setTimeout(resolve, 1500));
+                await new Promise(resolve => setTimeout(resolve, 1000));
 
-                // Mark as successful - Hubtel redirected back with reference
+                // Mark as successful
                 setPaymentStatus('success');
 
                 // Send confirmation email
-                if (bookingInfo && !emailSent) {
-                    await sendPaymentConfirmationEmail(bookingInfo);
-                    setEmailSent(true);
-                    // Clear stored booking
-                    localStorage.removeItem('pendingBooking');
+                emailSentRef.current = true;
+                setEmailStatus('sending');
+
+                try {
+                    console.log('Sending payment confirmation email to:', bookingInfo.email);
+
+                    const response = await fetch('/api/booking/email', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            ...bookingInfo,
+                            paymentStatus: 'paid',
+                            paymentReference: reference
+                        })
+                    });
+
+                    const result = await response.json();
+                    console.log('Email API response:', result);
+
+                    if (response.ok) {
+                        console.log('✅ Payment confirmation email sent successfully');
+                        setEmailStatus('sent');
+                        // Clear stored booking after successful email
+                        localStorage.removeItem('pendingBooking');
+                    } else {
+                        console.error('❌ Failed to send email:', result);
+                        setEmailStatus('failed');
+                    }
+                } catch (error) {
+                    console.error('Error sending payment confirmation email:', error);
+                    setEmailStatus('failed');
                 }
             } else {
-                // No reference - something went wrong
                 setPaymentStatus('pending');
             }
         };
 
-        processPayment();
-    }, [reference, emailSent]);
-
-    const sendPaymentConfirmationEmail = async (booking: BookingData) => {
-        try {
-            console.log('Sending payment confirmation email...');
-            const response = await fetch('/api/booking/email', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    ...booking,
-                    paymentStatus: 'paid',
-                    paymentReference: reference
-                })
-            });
-
-            if (response.ok) {
-                console.log('✅ Payment confirmation email sent successfully');
-            } else {
-                console.error('❌ Failed to send payment confirmation email');
-            }
-        } catch (error) {
-            console.error('Error sending payment confirmation email:', error);
-        }
-    };
+        processPaymentAndSendEmail();
+    }, [reference]);
 
     const getVehicleName = (type: string) => {
         const names: { [key: string]: string } = {
@@ -136,8 +150,30 @@ function SuccessContent() {
                                     Payment Successful!
                                 </h1>
                                 <p className="text-[#2B2F35] text-lg mb-6">
-                                    Thank you for booking with Quarhire. Your airport transfer has been confirmed and a confirmation email has been sent.
+                                    Thank you for booking with Quarhire. Your airport transfer has been confirmed.
                                 </p>
+
+                                {/* Email Status Indicator */}
+                                <div className="mb-6">
+                                    {emailStatus === 'sending' && (
+                                        <p className="text-[#0074C8] flex items-center justify-center gap-2">
+                                            <i className="ri-loader-4-line animate-spin"></i>
+                                            Sending confirmation email...
+                                        </p>
+                                    )}
+                                    {emailStatus === 'sent' && (
+                                        <p className="text-green-600 flex items-center justify-center gap-2">
+                                            <i className="ri-mail-check-line"></i>
+                                            Confirmation email sent!
+                                        </p>
+                                    )}
+                                    {emailStatus === 'failed' && (
+                                        <p className="text-orange-600 flex items-center justify-center gap-2">
+                                            <i className="ri-error-warning-line"></i>
+                                            Email could not be sent. Contact us for confirmation.
+                                        </p>
+                                    )}
+                                </div>
                             </>
                         )}
 
@@ -225,7 +261,7 @@ function SuccessContent() {
                             <ul className="text-left space-y-3 text-[#2B2F35]">
                                 <li className="flex items-start gap-3">
                                     <i className="ri-mail-line text-[#0074C8] text-xl mt-0.5"></i>
-                                    <span>You'll receive a confirmation email with your booking details</span>
+                                    <span>Check your email for booking confirmation</span>
                                 </li>
                                 <li className="flex items-start gap-3">
                                     <i className="ri-smartphone-line text-[#0074C8] text-xl mt-0.5"></i>
