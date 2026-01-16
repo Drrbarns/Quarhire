@@ -92,26 +92,29 @@ function BookingFormContent() {
         paymentReference: includePayment ? bookingRef : undefined
       };
 
-      // Send booking confirmation emails to customer and admin
-      try {
-        const emailResponse = await fetch('/api/booking/email', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(emailData)
-        });
+      // Only send email for reservations (no payment)
+      // For paid bookings, email is sent after payment on success page
+      if (!includePayment) {
+        try {
+          const emailResponse = await fetch('/api/booking/email', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(emailData)
+          });
 
-        if (emailResponse.ok) {
-          const emailResult = await emailResponse.json();
-          console.log('Email sent successfully:', emailResult);
-        } else {
-          const errorData = await emailResponse.json();
-          console.warn('Email API returned error:', errorData);
+          if (emailResponse.ok) {
+            const emailResult = await emailResponse.json();
+            console.log('Reservation email sent successfully:', emailResult);
+          } else {
+            const errorData = await emailResponse.json();
+            console.warn('Email API returned error:', errorData);
+          }
+        } catch (emailError) {
+          console.warn('Email sending failed:', emailError);
+          // Continue anyway - we'll still show success to user
         }
-      } catch (emailError) {
-        console.warn('Email sending failed:', emailError);
-        // Continue anyway - we'll still show success to user
       }
 
       // Also try to submit to external API (legacy)
