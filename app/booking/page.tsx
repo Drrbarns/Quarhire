@@ -93,7 +93,7 @@ function BookingFormContent() {
       };
 
       // Only send email for reservations (no payment)
-      // For paid bookings, email is sent after payment on success page
+      // For paid bookings, email is sent after payment confirmation on success page
       if (!includePayment) {
         try {
           const emailResponse = await fetch('/api/booking/email', {
@@ -149,15 +149,12 @@ function BookingFormContent() {
 
         try {
           // Create Hubtel checkout session
-          // Ensure destination is never empty
-          const resolvedDestination = formData.customDestination || formData.destination || 'Custom Destination';
-
           const bookingData: BookingData = {
             name: formData.name,
             email: formData.email,
             phone: formData.phone,
             pickupLocation: formData.customPickupLocation || formData.pickupLocation,
-            destination: resolvedDestination,
+            destination: formData.destination,
             customDestination: formData.customDestination,
             airline: formData.airline,
             flightNumber: formData.flightNumber,
