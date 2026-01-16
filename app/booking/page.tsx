@@ -37,7 +37,7 @@ function BookingFormContent() {
 
   // Fixed pricing per vehicle type
   const vehiclePrices: { [key: string]: number } = {
-    'economy': 5,      // Sedan (TEST PRICE - change back to 600 for production)
+    'economy': 600,      // Sedan
     'suv': 1500,         // Premium SUV
     'executive': 900,    // Mini SUV
     'van': 2000          // Executive Van
@@ -92,29 +92,26 @@ function BookingFormContent() {
         paymentReference: includePayment ? bookingRef : undefined
       };
 
-      // Only send email for reservations (no payment)
-      // For paid bookings, email is sent after payment confirmation on success page
-      if (!includePayment) {
-        try {
-          const emailResponse = await fetch('/api/booking/email', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(emailData)
-          });
+      // Send booking confirmation emails to customer and admin
+      try {
+        const emailResponse = await fetch('/api/booking/email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(emailData)
+        });
 
-          if (emailResponse.ok) {
-            const emailResult = await emailResponse.json();
-            console.log('Reservation email sent successfully:', emailResult);
-          } else {
-            const errorData = await emailResponse.json();
-            console.warn('Email API returned error:', errorData);
-          }
-        } catch (emailError) {
-          console.warn('Email sending failed:', emailError);
-          // Continue anyway - we'll still show success to user
+        if (emailResponse.ok) {
+          const emailResult = await emailResponse.json();
+          console.log('Email sent successfully:', emailResult);
+        } else {
+          const errorData = await emailResponse.json();
+          console.warn('Email API returned error:', errorData);
         }
+      } catch (emailError) {
+        console.warn('Email sending failed:', emailError);
+        // Continue anyway - we'll still show success to user
       }
 
       // Also try to submit to external API (legacy)
@@ -187,13 +184,14 @@ function BookingFormContent() {
           if (checkoutData.success && checkoutData.checkoutUrl) {
             setSubmitMessage('Redirecting to payment page...');
 
-            // Store booking data in localStorage for the success page
-            const bookingDataForStorage = {
+            // Store booking data in localStorage for success page to send confirmation emails
+            const bookingDataForEmail = {
               ...bookingData,
               bookingReference: bookingRef,
+              paymentReference: checkoutData.checkoutId,
               checkoutId: checkoutData.checkoutId
             };
-            localStorage.setItem('pendingBooking', JSON.stringify(bookingDataForStorage));
+            localStorage.setItem('pendingBooking', JSON.stringify(bookingDataForEmail));
 
             // Redirect to Hubtel checkout page
             window.location.href = checkoutData.checkoutUrl;

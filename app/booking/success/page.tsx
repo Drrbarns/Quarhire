@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useState, useRef } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 
 interface BookingData {
@@ -21,6 +21,7 @@ interface BookingData {
     specialRequests?: string;
     estimatedPrice: string;
     bookingReference: string;
+    paymentReference?: string;
     checkoutId?: string;
 }
 
@@ -28,89 +29,96 @@ function SuccessContent() {
     const searchParams = useSearchParams();
     const reference = searchParams.get('ref');
     const [paymentStatus, setPaymentStatus] = useState<'checking' | 'success' | 'pending' | 'failed'>('checking');
+    const [emailSent, setEmailSent] = useState(false);
     const [bookingData, setBookingData] = useState<BookingData | null>(null);
-    const [emailStatus, setEmailStatus] = useState<'pending' | 'sending' | 'sent' | 'failed'>('pending');
-    const emailSentRef = useRef(false);
 
     useEffect(() => {
-        const processPaymentAndSendEmail = async () => {
-            // Prevent double execution
-            if (emailSentRef.current) return;
-
-            // Get booking data from localStorage
-            const storedBooking = localStorage.getItem('pendingBooking');
-
-            if (!storedBooking) {
-                console.log('No stored booking found in localStorage');
-                if (reference) {
-                    setPaymentStatus('success');
-                } else {
-                    setPaymentStatus('pending');
-                }
-                return;
-            }
-
-            let bookingInfo: BookingData;
+        // Retrieve booking data from localStorage
+        const storedBooking = localStorage.getItem('pendingBooking');
+        if (storedBooking) {
             try {
-                bookingInfo = JSON.parse(storedBooking);
-                setBookingData(bookingInfo);
-                console.log('Booking data loaded:', bookingInfo);
+                const parsed = JSON.parse(storedBooking);
+                setBookingData(parsed);
             } catch (e) {
-                console.error('Failed to parse stored booking:', e);
-                setPaymentStatus('pending');
-                return;
+                console.error('Failed to parse booking data:', e);
             }
+        }
 
-            // If we have a reference, payment was completed on Hubtel
+        // Check payment status and send emails
+        const processPayment = async () => {
+            // Short delay to allow Hubtel callback to process
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // Try to check payment status
             if (reference) {
-                // Short delay for UX
-                await new Promise(resolve => setTimeout(resolve, 1000));
-
-                // Mark as successful
-                setPaymentStatus('success');
-
-                // Send confirmation email
-                emailSentRef.current = true;
-                setEmailStatus('sending');
-
                 try {
-                    console.log('Sending payment confirmation email to:', bookingInfo.email);
+                    const response = await fetch(`/api/hubtel/status?clientReference=${reference}`);
+                    const data = await response.json();
 
-                    const response = await fetch('/api/booking/email', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            ...bookingInfo,
-                            paymentStatus: 'paid',
-                            paymentReference: reference
-                        })
-                    });
-
-                    const result = await response.json();
-                    console.log('Email API response:', result);
-
-                    if (response.ok) {
-                        console.log('✅ Payment confirmation email sent successfully');
-                        setEmailStatus('sent');
-                        // Clear stored booking after successful email
-                        localStorage.removeItem('pendingBooking');
+                    if (data.success && data.transaction?.isPaid) {
+                        setPaymentStatus('success');
+                        // Send confirmation emails
+                        await sendConfirmationEmails();
+                    } else if (data.error?.includes('403') || data.error?.includes('whitelist')) {
+                        // Status check not available (IP not whitelisted)
+                        // Assume success since customer was redirected back
+                        setPaymentStatus('success');
+                        await sendConfirmationEmails();
                     } else {
-                        console.error('❌ Failed to send email:', result);
-                        setEmailStatus('failed');
+                        // Payment may still be processing
+                        setPaymentStatus('pending');
+                        // Still try to send emails - callback may have confirmed payment
+                        await sendConfirmationEmails();
                     }
                 } catch (error) {
-                    console.error('Error sending payment confirmation email:', error);
-                    setEmailStatus('failed');
+                    console.error('Status check error:', error);
+                    // If status check fails, assume payment was successful (customer redirected back)
+                    setPaymentStatus('success');
+                    await sendConfirmationEmails();
                 }
             } else {
+                // No reference, but customer is on success page
                 setPaymentStatus('pending');
             }
         };
 
-        processPaymentAndSendEmail();
+        processPayment();
     }, [reference]);
+
+    const sendConfirmationEmails = async () => {
+        if (emailSent) return; // Don't send twice
+
+        const storedBooking = localStorage.getItem('pendingBooking');
+        if (!storedBooking) {
+            console.warn('No booking data found for email confirmation');
+            return;
+        }
+
+        try {
+            const booking = JSON.parse(storedBooking);
+
+            const response = await fetch('/api/hubtel/confirm-email', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(booking)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                console.log('Confirmation emails sent:', result);
+                setEmailSent(true);
+                // Clear the stored booking data after successful email
+                localStorage.removeItem('pendingBooking');
+            } else {
+                console.error('Failed to send confirmation emails:', result);
+            }
+        } catch (error) {
+            console.error('Error sending confirmation emails:', error);
+        }
+    };
 
     const getVehicleName = (type: string) => {
         const names: { [key: string]: string } = {
@@ -133,10 +141,10 @@ function SuccessContent() {
                                     <i className="ri-loader-4-line text-5xl text-[#0074C8] animate-spin"></i>
                                 </div>
                                 <h1 className="text-3xl font-bold text-[#0A0A0A] mb-4">
-                                    Confirming Payment...
+                                    Verifying Payment...
                                 </h1>
                                 <p className="text-[#2B2F35] text-lg">
-                                    Please wait while we finalize your booking.
+                                    Please wait while we confirm your payment and send confirmation emails.
                                 </p>
                             </div>
                         )}
@@ -151,29 +159,8 @@ function SuccessContent() {
                                 </h1>
                                 <p className="text-[#2B2F35] text-lg mb-6">
                                     Thank you for booking with Quarhire. Your airport transfer has been confirmed.
+                                    {emailSent && ' Confirmation emails have been sent to you and our team.'}
                                 </p>
-
-                                {/* Email Status Indicator */}
-                                <div className="mb-6">
-                                    {emailStatus === 'sending' && (
-                                        <p className="text-[#0074C8] flex items-center justify-center gap-2">
-                                            <i className="ri-loader-4-line animate-spin"></i>
-                                            Sending confirmation email...
-                                        </p>
-                                    )}
-                                    {emailStatus === 'sent' && (
-                                        <p className="text-green-600 flex items-center justify-center gap-2">
-                                            <i className="ri-mail-check-line"></i>
-                                            Confirmation email sent!
-                                        </p>
-                                    )}
-                                    {emailStatus === 'failed' && (
-                                        <p className="text-orange-600 flex items-center justify-center gap-2">
-                                            <i className="ri-error-warning-line"></i>
-                                            Email could not be sent. Contact us for confirmation.
-                                        </p>
-                                    )}
-                                </div>
                             </>
                         )}
 
@@ -183,10 +170,10 @@ function SuccessContent() {
                                     <i className="ri-time-line text-5xl text-yellow-500"></i>
                                 </div>
                                 <h1 className="text-3xl font-bold text-[#0A0A0A] mb-4">
-                                    Booking Received
+                                    Payment Processing
                                 </h1>
                                 <p className="text-[#2B2F35] text-lg mb-6">
-                                    Your booking has been received. Please contact us to complete payment.
+                                    Your payment is being processed. You will receive a confirmation SMS and email shortly.
                                 </p>
                             </>
                         )}
@@ -197,14 +184,15 @@ function SuccessContent() {
                                     <i className="ri-close-circle-fill text-5xl text-red-500"></i>
                                 </div>
                                 <h1 className="text-3xl font-bold text-[#0A0A0A] mb-4">
-                                    Payment Issue
+                                    Payment Failed
                                 </h1>
                                 <p className="text-[#2B2F35] text-lg mb-6">
-                                    There was an issue with your payment. Please try again or contact us for assistance.
+                                    Unfortunately, your payment could not be processed. Please try again or contact us for assistance.
                                 </p>
                             </>
                         )}
 
+                        {/* Booking Reference */}
                         {reference && (
                             <div className="bg-[#F5F7FA] rounded-xl p-6 mb-8 inline-block">
                                 <p className="text-sm text-[#2B2F35] mb-1">Booking Reference</p>
@@ -213,55 +201,45 @@ function SuccessContent() {
                         )}
 
                         {/* Booking Details Card */}
-                        {bookingData && (
+                        {bookingData && paymentStatus === 'success' && (
                             <div className="bg-white rounded-2xl shadow-lg p-8 mb-8 text-left">
-                                <h2 className="text-xl font-bold text-[#0A0A0A] mb-6 text-center">Booking Details</h2>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="flex items-start gap-3">
-                                        <i className="ri-calendar-line text-[#0074C8] text-xl mt-0.5"></i>
-                                        <div>
-                                            <p className="text-sm text-[#2B2F35]">Date & Time</p>
-                                            <p className="font-semibold text-[#0A0A0A]">{bookingData.date} at {bookingData.time}</p>
-                                        </div>
+                                <h2 className="text-xl font-bold text-[#0A0A0A] mb-6 text-center">Your Booking Details</h2>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="bg-[#F5F7FA] rounded-lg p-4">
+                                        <p className="text-sm text-[#2B2F35]/70 mb-1">Pickup Date & Time</p>
+                                        <p className="font-semibold text-[#0A0A0A]">{bookingData.date} at {bookingData.time}</p>
                                     </div>
-                                    <div className="flex items-start gap-3">
-                                        <i className="ri-car-line text-[#0074C8] text-xl mt-0.5"></i>
-                                        <div>
-                                            <p className="text-sm text-[#2B2F35]">Vehicle</p>
-                                            <p className="font-semibold text-[#0A0A0A]">{getVehicleName(bookingData.vehicleType)}</p>
-                                        </div>
+                                    <div className="bg-[#F5F7FA] rounded-lg p-4">
+                                        <p className="text-sm text-[#2B2F35]/70 mb-1">Vehicle Type</p>
+                                        <p className="font-semibold text-[#0A0A0A]">{getVehicleName(bookingData.vehicleType)}</p>
                                     </div>
-                                    <div className="flex items-start gap-3">
-                                        <i className="ri-map-pin-line text-[#0074C8] text-xl mt-0.5"></i>
-                                        <div>
-                                            <p className="text-sm text-[#2B2F35]">Pickup</p>
-                                            <p className="font-semibold text-[#0A0A0A]">{bookingData.pickupLocation}</p>
-                                        </div>
+                                    <div className="bg-[#F5F7FA] rounded-lg p-4">
+                                        <p className="text-sm text-[#2B2F35]/70 mb-1">Pickup Location</p>
+                                        <p className="font-semibold text-[#0A0A0A]">{bookingData.pickupLocation}</p>
                                     </div>
-                                    <div className="flex items-start gap-3">
-                                        <i className="ri-flag-line text-[#0074C8] text-xl mt-0.5"></i>
-                                        <div>
-                                            <p className="text-sm text-[#2B2F35]">Destination</p>
-                                            <p className="font-semibold text-[#0A0A0A]">{bookingData.customDestination || bookingData.destination}</p>
-                                        </div>
+                                    <div className="bg-[#F5F7FA] rounded-lg p-4">
+                                        <p className="text-sm text-[#2B2F35]/70 mb-1">Destination</p>
+                                        <p className="font-semibold text-[#0A0A0A]">{bookingData.customDestination || bookingData.destination}</p>
                                     </div>
-                                    <div className="flex items-start gap-3 md:col-span-2">
-                                        <i className="ri-money-cny-circle-line text-[#0074C8] text-xl mt-0.5"></i>
-                                        <div>
-                                            <p className="text-sm text-[#2B2F35]">Amount Paid</p>
-                                            <p className="font-bold text-xl text-green-600">{bookingData.estimatedPrice}</p>
-                                        </div>
+                                    <div className="bg-[#F5F7FA] rounded-lg p-4">
+                                        <p className="text-sm text-[#2B2F35]/70 mb-1">Passengers</p>
+                                        <p className="font-semibold text-[#0A0A0A]">{bookingData.passengers}</p>
+                                    </div>
+                                    <div className="bg-[#0074C8]/10 rounded-lg p-4">
+                                        <p className="text-sm text-[#0074C8]/70 mb-1">Amount Paid</p>
+                                        <p className="font-bold text-[#0074C8] text-xl">{bookingData.estimatedPrice}</p>
                                     </div>
                                 </div>
                             </div>
                         )}
 
+                        {/* What's Next Card */}
                         <div className="bg-white rounded-2xl shadow-lg p-8 mb-8">
                             <h2 className="text-xl font-bold text-[#0A0A0A] mb-4">What's Next?</h2>
                             <ul className="text-left space-y-3 text-[#2B2F35]">
                                 <li className="flex items-start gap-3">
                                     <i className="ri-mail-line text-[#0074C8] text-xl mt-0.5"></i>
-                                    <span>Check your email for booking confirmation</span>
+                                    <span>You'll receive a confirmation email with your booking details</span>
                                 </li>
                                 <li className="flex items-start gap-3">
                                     <i className="ri-smartphone-line text-[#0074C8] text-xl mt-0.5"></i>
@@ -274,6 +252,7 @@ function SuccessContent() {
                             </ul>
                         </div>
 
+                        {/* Action Buttons */}
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
                             <Link
                                 href="/"
@@ -289,6 +268,7 @@ function SuccessContent() {
                             </Link>
                         </div>
 
+                        {/* Help Section */}
                         <div className="mt-12 p-6 bg-[#0074C8]/5 rounded-xl">
                             <p className="text-[#2B2F35] mb-2">Need assistance?</p>
                             <div className="flex flex-wrap justify-center gap-4">
