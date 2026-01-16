@@ -88,47 +88,53 @@ function SuccessContent() {
 
     const sendPaymentConfirmationEmail = async (booking: BookingData, paymentRef: string): Promise<boolean> => {
         try {
-            console.log('Sending payment confirmation email...');
+            console.log('Sending payment confirmation email with data:', booking);
+
+            const emailPayload = {
+                name: booking.name,
+                email: booking.email,
+                phone: booking.phone,
+                pickupLocation: booking.pickupLocation,
+                destination: booking.customDestination || booking.destination || 'Custom Destination',
+                customDestination: booking.customDestination,
+                airline: booking.airline,
+                flightNumber: booking.flightNumber,
+                vehicleType: booking.vehicleType,
+                date: booking.date,
+                time: booking.time,
+                passengers: booking.passengers || 1,
+                luggage: booking.luggage || 1,
+                specialRequests: booking.specialRequests,
+                estimatedPrice: booking.estimatedPrice,
+                bookingReference: booking.bookingReference,
+                paymentStatus: 'paid',
+                paymentReference: paymentRef
+            };
+
+            console.log('Email payload:', emailPayload);
 
             const response = await fetch('/api/booking/email', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    name: booking.name,
-                    email: booking.email,
-                    phone: booking.phone,
-                    pickupLocation: booking.pickupLocation,
-                    destination: booking.customDestination || booking.destination || 'Custom Destination',
-                    customDestination: booking.customDestination,
-                    airline: booking.airline,
-                    flightNumber: booking.flightNumber,
-                    vehicleType: booking.vehicleType,
-                    date: booking.date,
-                    time: booking.time,
-                    passengers: booking.passengers || 1,
-                    luggage: booking.luggage || 1,
-                    specialRequests: booking.specialRequests,
-                    estimatedPrice: booking.estimatedPrice,
-                    bookingReference: booking.bookingReference,
-                    paymentStatus: 'paid',
-                    paymentReference: paymentRef
-                })
+                body: JSON.stringify(emailPayload)
             });
 
-            if (response.ok) {
+            const responseData = await response.json();
+            console.log('Email API response:', responseData);
+
+            if (response.ok && responseData.success) {
                 console.log('✅ Payment confirmation email sent successfully');
                 return true;
             } else {
-                const errorData = await response.json();
-                console.error('❌ Failed to send email:', errorData);
-                setEmailError('Email sending failed, but your booking is confirmed.');
+                console.error('❌ Failed to send email:', responseData);
+                setEmailError(`Email failed: ${responseData.error || responseData.message || 'Unknown error'}`);
                 return false;
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('❌ Error sending payment confirmation email:', error);
-            setEmailError('Email sending failed, but your booking is confirmed.');
+            setEmailError(`Email error: ${error.message || 'Network error'}`);
             return false;
         }
     };
