@@ -4,12 +4,10 @@
 import { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
-  initializePaystackPayment,
   generatePaymentReference,
-  convertToKobo,
-  formatBookingMetadata,
+  formatBookingDescription,
   type BookingData
-} from '@/lib/paystack';
+} from '@/lib/hubtel';
 
 function BookingFormContent() {
   const searchParams = useSearchParams();
@@ -144,12 +142,57 @@ function BookingFormContent() {
 
       // Show success message
       if (includePayment) {
-        setSubmitMessage('Booking saved! Opening payment window... A confirmation email has been sent to your inbox.');
+        setSubmitMessage('Initiating payment... Please wait.');
 
-        setTimeout(() => {
-          // For now, open the payment page (will be replaced with Paystack popup later)
-          window.open(`https://paystack.com/pay/quarHire-booking?amount=${parseFloat(priceBreakdown.total) * 100}&email=${formData.email}&reference=${bookingRef}`, '_blank');
-        }, 1000);
+        try {
+          // Create Hubtel checkout session
+          const bookingData: BookingData = {
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone,
+            pickupLocation: formData.customPickupLocation || formData.pickupLocation,
+            destination: formData.destination,
+            customDestination: formData.customDestination,
+            airline: formData.airline,
+            flightNumber: formData.flightNumber,
+            vehicleType: formData.vehicleType,
+            date: formData.date,
+            time: formData.time,
+            passengers: formData.passengers,
+            luggage: formData.luggage,
+            specialRequests: formData.specialRequests,
+            estimatedPrice: `GHS ${priceBreakdown.total}`
+          };
+
+          const checkoutResponse = await fetch('/api/hubtel/checkout', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              totalAmount: parseFloat(priceBreakdown.total),
+              description: formatBookingDescription(bookingData),
+              clientReference: bookingRef,
+              name: formData.name,
+              email: formData.email,
+              phone: formData.phone
+            })
+          });
+
+          const checkoutData = await checkoutResponse.json();
+
+          if (checkoutData.success && checkoutData.checkoutUrl) {
+            setSubmitMessage('Redirecting to payment page...');
+            // Redirect to Hubtel checkout page
+            window.location.href = checkoutData.checkoutUrl;
+            return; // Don't reset form - user will be redirected
+          } else {
+            setSubmitMessage(`Payment initialization failed: ${checkoutData.message || 'Please try again or contact support.'}`);
+          }
+        } catch (paymentError) {
+          console.error('Payment error:', paymentError);
+          setSubmitMessage('Payment system error. Your booking has been saved. Please try paying again or contact us at +233 240 665 648');
+        }
       } else {
         // Show booking details to user
         setSubmitMessage(`Booking reserved successfully! A confirmation email has been sent to ${formData.email}.
