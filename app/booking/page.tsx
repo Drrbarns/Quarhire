@@ -149,12 +149,15 @@ function BookingFormContent() {
 
         try {
           // Create Hubtel checkout session
+          // Ensure destination is never empty
+          const resolvedDestination = formData.customDestination || formData.destination || 'Custom Destination';
+
           const bookingData: BookingData = {
             name: formData.name,
             email: formData.email,
             phone: formData.phone,
             pickupLocation: formData.customPickupLocation || formData.pickupLocation,
-            destination: formData.destination,
+            destination: resolvedDestination,
             customDestination: formData.customDestination,
             airline: formData.airline,
             flightNumber: formData.flightNumber,
