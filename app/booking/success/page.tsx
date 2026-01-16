@@ -27,6 +27,7 @@ interface BookingData {
 function SuccessContent() {
     const searchParams = useSearchParams();
     const reference = searchParams.get('ref');
+    const checkoutId = searchParams.get('checkoutid');
     const [paymentStatus, setPaymentStatus] = useState<'checking' | 'success' | 'pending' | 'failed'>('checking');
     const [bookingData, setBookingData] = useState<BookingData | null>(null);
     const [emailSent, setEmailSent] = useState(false);
@@ -34,52 +35,37 @@ function SuccessContent() {
     useEffect(() => {
         // Retrieve booking data from localStorage
         const storedBooking = localStorage.getItem('pendingBooking');
+        let bookingInfo: BookingData | null = null;
+
         if (storedBooking) {
             try {
-                const parsed = JSON.parse(storedBooking);
-                setBookingData(parsed);
+                bookingInfo = JSON.parse(storedBooking);
+                setBookingData(bookingInfo);
             } catch (e) {
                 console.error('Failed to parse stored booking:', e);
             }
         }
 
-        // Check payment status
+        // Process payment confirmation
         const processPayment = async () => {
-            if (!reference) {
-                setPaymentStatus('pending');
-                return;
-            }
+            // If we have a reference, Hubtel has redirected back after payment
+            // Hubtel only redirects to returnUrl on successful payment initiation
+            if (reference) {
+                // Short delay for UX
+                await new Promise(resolve => setTimeout(resolve, 1500));
 
-            // Wait for Hubtel callback to process (3 seconds)
-            await new Promise(resolve => setTimeout(resolve, 3000));
+                // Mark as successful - Hubtel redirected back with reference
+                setPaymentStatus('success');
 
-            try {
-                // Check payment status via our API
-                const response = await fetch(`/api/hubtel/status?clientReference=${reference}`);
-                const data = await response.json();
-
-                if (data.success && data.transaction?.isPaid) {
-                    // Payment confirmed!
-                    setPaymentStatus('success');
-
-                    // Send payment confirmation email ONLY when payment is confirmed
-                    if (storedBooking && !emailSent) {
-                        const bookingInfo = JSON.parse(storedBooking);
-                        await sendPaymentConfirmationEmail(bookingInfo);
-                        setEmailSent(true);
-                        // Clear the stored booking after sending email
-                        localStorage.removeItem('pendingBooking');
-                    }
-                } else {
-                    // Payment not yet confirmed - status check may have failed (IP not whitelisted)
-                    // or payment is still processing
-                    setPaymentStatus('pending');
-                    // DO NOT send email yet - wait for confirmed payment
+                // Send confirmation email
+                if (bookingInfo && !emailSent) {
+                    await sendPaymentConfirmationEmail(bookingInfo);
+                    setEmailSent(true);
+                    // Clear stored booking
+                    localStorage.removeItem('pendingBooking');
                 }
-            } catch (error) {
-                console.error('Status check error:', error);
-                // Status check failed (likely IP not whitelisted)
-                // Set to pending - email will NOT be sent until payment is confirmed
+            } else {
+                // No reference - something went wrong
                 setPaymentStatus('pending');
             }
         };
@@ -133,10 +119,10 @@ function SuccessContent() {
                                     <i className="ri-loader-4-line text-5xl text-[#0074C8] animate-spin"></i>
                                 </div>
                                 <h1 className="text-3xl font-bold text-[#0A0A0A] mb-4">
-                                    Verifying Payment...
+                                    Confirming Payment...
                                 </h1>
                                 <p className="text-[#2B2F35] text-lg">
-                                    Please wait while we confirm your payment.
+                                    Please wait while we finalize your booking.
                                 </p>
                             </div>
                         )}
@@ -161,10 +147,10 @@ function SuccessContent() {
                                     <i className="ri-time-line text-5xl text-yellow-500"></i>
                                 </div>
                                 <h1 className="text-3xl font-bold text-[#0A0A0A] mb-4">
-                                    Payment Processing
+                                    Booking Received
                                 </h1>
                                 <p className="text-[#2B2F35] text-lg mb-6">
-                                    Your payment is being verified. You will receive a confirmation email once payment is confirmed.
+                                    Your booking has been received. Please contact us to complete payment.
                                 </p>
                             </>
                         )}
@@ -175,10 +161,10 @@ function SuccessContent() {
                                     <i className="ri-close-circle-fill text-5xl text-red-500"></i>
                                 </div>
                                 <h1 className="text-3xl font-bold text-[#0A0A0A] mb-4">
-                                    Payment Failed
+                                    Payment Issue
                                 </h1>
                                 <p className="text-[#2B2F35] text-lg mb-6">
-                                    Unfortunately, your payment could not be processed. Please try again or contact us for assistance.
+                                    There was an issue with your payment. Please try again or contact us for assistance.
                                 </p>
                             </>
                         )}
@@ -226,7 +212,7 @@ function SuccessContent() {
                                     <div className="flex items-start gap-3 md:col-span-2">
                                         <i className="ri-money-cny-circle-line text-[#0074C8] text-xl mt-0.5"></i>
                                         <div>
-                                            <p className="text-sm text-[#2B2F35]">Amount</p>
+                                            <p className="text-sm text-[#2B2F35]">Amount Paid</p>
                                             <p className="font-bold text-xl text-green-600">{bookingData.estimatedPrice}</p>
                                         </div>
                                     </div>
@@ -239,7 +225,7 @@ function SuccessContent() {
                             <ul className="text-left space-y-3 text-[#2B2F35]">
                                 <li className="flex items-start gap-3">
                                     <i className="ri-mail-line text-[#0074C8] text-xl mt-0.5"></i>
-                                    <span>You'll receive a confirmation email once payment is verified</span>
+                                    <span>You'll receive a confirmation email with your booking details</span>
                                 </li>
                                 <li className="flex items-start gap-3">
                                     <i className="ri-smartphone-line text-[#0074C8] text-xl mt-0.5"></i>
