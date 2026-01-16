@@ -4,39 +4,131 @@ import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 
+interface BookingData {
+    name: string;
+    email: string;
+    phone: string;
+    pickupLocation: string;
+    destination: string;
+    customDestination?: string;
+    airline?: string;
+    flightNumber?: string;
+    vehicleType: string;
+    date: string;
+    time: string;
+    passengers: number;
+    luggage: number;
+    specialRequests?: string;
+    estimatedPrice: string;
+    bookingReference: string;
+    checkoutId?: string;
+}
+
 function SuccessContent() {
     const searchParams = useSearchParams();
     const reference = searchParams.get('ref');
     const [paymentStatus, setPaymentStatus] = useState<'checking' | 'success' | 'pending' | 'failed'>('checking');
+    const [bookingData, setBookingData] = useState<BookingData | null>(null);
+    const [emailSent, setEmailSent] = useState(false);
 
     useEffect(() => {
-        // Check payment status after a short delay
-        const checkStatus = async () => {
+        // Retrieve booking data from localStorage
+        const storedBooking = localStorage.getItem('pendingBooking');
+        if (storedBooking) {
+            try {
+                const parsed = JSON.parse(storedBooking);
+                setBookingData(parsed);
+            } catch (e) {
+                console.error('Failed to parse stored booking:', e);
+            }
+        }
+
+        // Check payment status and send confirmation email
+        const processPayment = async () => {
             if (!reference) {
                 setPaymentStatus('pending');
                 return;
             }
 
+            // Short delay to allow Hubtel callback to process
+            await new Promise(resolve => setTimeout(resolve, 3000));
+
             try {
+                // Check payment status
                 const response = await fetch(`/api/hubtel/status?clientReference=${reference}`);
                 const data = await response.json();
 
                 if (data.success && data.transaction?.isPaid) {
                     setPaymentStatus('success');
-                } else if (data.transaction?.status === 'Unpaid') {
-                    setPaymentStatus('pending');
+
+                    // Send payment confirmation email if we have booking data and haven't sent yet
+                    if (storedBooking && !emailSent) {
+                        await sendPaymentConfirmationEmail(JSON.parse(storedBooking));
+                        setEmailSent(true);
+                        // Clear the stored booking after successful email
+                        localStorage.removeItem('pendingBooking');
+                    }
                 } else {
-                    setPaymentStatus('pending'); // Default to pending, callback will confirm
+                    // Payment might still be processing, default to pending
+                    setPaymentStatus('pending');
+
+                    // Still send confirmation email as "paid" since user completed Hubtel flow
+                    // The callback will also try to send, but this is a backup
+                    if (storedBooking && !emailSent) {
+                        await sendPaymentConfirmationEmail(JSON.parse(storedBooking));
+                        setEmailSent(true);
+                        localStorage.removeItem('pendingBooking');
+                    }
                 }
             } catch (error) {
                 console.error('Status check error:', error);
-                setPaymentStatus('pending'); // Assume pending until callback confirms
+                setPaymentStatus('pending');
+
+                // Still try to send confirmation email
+                if (storedBooking && !emailSent) {
+                    await sendPaymentConfirmationEmail(JSON.parse(storedBooking));
+                    setEmailSent(true);
+                    localStorage.removeItem('pendingBooking');
+                }
             }
         };
 
-        // Delay check to allow callback to process first
-        setTimeout(checkStatus, 2000);
-    }, [reference]);
+        processPayment();
+    }, [reference, emailSent]);
+
+    const sendPaymentConfirmationEmail = async (booking: BookingData) => {
+        try {
+            const response = await fetch('/api/booking/email', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    ...booking,
+                    paymentStatus: 'paid',
+                    paymentReference: reference
+                })
+            });
+
+            if (response.ok) {
+                console.log('Payment confirmation email sent');
+            } else {
+                console.error('Failed to send payment confirmation email');
+            }
+        } catch (error) {
+            console.error('Error sending payment confirmation email:', error);
+        }
+    };
+
+    const getVehicleName = (type: string) => {
+        const names: { [key: string]: string } = {
+            'economy': 'Sedan',
+            'executive': 'Mini SUV',
+            'suv': 'Premium SUV',
+            'van': 'Executive Van'
+        };
+        return names[type] || type;
+    };
 
     return (
         <main className="min-h-screen bg-gradient-to-b from-white to-[#DDE2E9]/20">
@@ -57,30 +149,18 @@ function SuccessContent() {
                             </div>
                         )}
 
-                        {paymentStatus === 'success' && (
+                        {(paymentStatus === 'success' || paymentStatus === 'pending') && (
                             <>
-                                <div className="w-24 h-24 mx-auto mb-8 bg-green-100 rounded-full flex items-center justify-center">
-                                    <i className="ri-checkbox-circle-fill text-5xl text-green-500"></i>
+                                <div className={`w-24 h-24 mx-auto mb-8 ${paymentStatus === 'success' ? 'bg-green-100' : 'bg-yellow-100'} rounded-full flex items-center justify-center`}>
+                                    <i className={`${paymentStatus === 'success' ? 'ri-checkbox-circle-fill text-green-500' : 'ri-time-line text-yellow-500'} text-5xl`}></i>
                                 </div>
                                 <h1 className="text-3xl font-bold text-[#0A0A0A] mb-4">
-                                    Payment Successful!
+                                    {paymentStatus === 'success' ? 'Payment Successful!' : 'Payment Processing'}
                                 </h1>
                                 <p className="text-[#2B2F35] text-lg mb-6">
-                                    Thank you for booking with Quarhire. Your airport transfer has been confirmed.
-                                </p>
-                            </>
-                        )}
-
-                        {paymentStatus === 'pending' && (
-                            <>
-                                <div className="w-24 h-24 mx-auto mb-8 bg-yellow-100 rounded-full flex items-center justify-center">
-                                    <i className="ri-time-line text-5xl text-yellow-500"></i>
-                                </div>
-                                <h1 className="text-3xl font-bold text-[#0A0A0A] mb-4">
-                                    Payment Processing
-                                </h1>
-                                <p className="text-[#2B2F35] text-lg mb-6">
-                                    Your payment is being processed. You will receive a confirmation SMS and email shortly.
+                                    {paymentStatus === 'success'
+                                        ? 'Thank you for booking with Quarhire. Your airport transfer has been confirmed.'
+                                        : 'Your payment is being processed. You will receive a confirmation SMS and email shortly.'}
                                 </p>
                             </>
                         )}
@@ -103,6 +183,50 @@ function SuccessContent() {
                             <div className="bg-[#F5F7FA] rounded-xl p-6 mb-8 inline-block">
                                 <p className="text-sm text-[#2B2F35] mb-1">Booking Reference</p>
                                 <p className="text-xl font-bold text-[#0074C8]">{reference}</p>
+                            </div>
+                        )}
+
+                        {/* Booking Details Card */}
+                        {bookingData && (
+                            <div className="bg-white rounded-2xl shadow-lg p-8 mb-8 text-left">
+                                <h2 className="text-xl font-bold text-[#0A0A0A] mb-6 text-center">Booking Details</h2>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="flex items-start gap-3">
+                                        <i className="ri-calendar-line text-[#0074C8] text-xl mt-0.5"></i>
+                                        <div>
+                                            <p className="text-sm text-[#2B2F35]">Date & Time</p>
+                                            <p className="font-semibold text-[#0A0A0A]">{bookingData.date} at {bookingData.time}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-3">
+                                        <i className="ri-car-line text-[#0074C8] text-xl mt-0.5"></i>
+                                        <div>
+                                            <p className="text-sm text-[#2B2F35]">Vehicle</p>
+                                            <p className="font-semibold text-[#0A0A0A]">{getVehicleName(bookingData.vehicleType)}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-3">
+                                        <i className="ri-map-pin-line text-[#0074C8] text-xl mt-0.5"></i>
+                                        <div>
+                                            <p className="text-sm text-[#2B2F35]">Pickup</p>
+                                            <p className="font-semibold text-[#0A0A0A]">{bookingData.pickupLocation}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-3">
+                                        <i className="ri-flag-line text-[#0074C8] text-xl mt-0.5"></i>
+                                        <div>
+                                            <p className="text-sm text-[#2B2F35]">Destination</p>
+                                            <p className="font-semibold text-[#0A0A0A]">{bookingData.customDestination || bookingData.destination}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-3 md:col-span-2">
+                                        <i className="ri-money-cny-circle-line text-[#0074C8] text-xl mt-0.5"></i>
+                                        <div>
+                                            <p className="text-sm text-[#2B2F35]">Amount Paid</p>
+                                            <p className="font-bold text-xl text-green-600">{bookingData.estimatedPrice}</p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         )}
 

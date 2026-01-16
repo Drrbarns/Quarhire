@@ -6,12 +6,15 @@ import { type HubtelCallbackPayload, isSuccessResponse } from '@/lib/hubtel';
  * POST /api/hubtel/callback
  * 
  * Receives payment status notifications from Hubtel
+ * Note: Email confirmation is handled by the success page using localStorage data
  */
 export async function POST(request: NextRequest) {
     try {
         const payload: HubtelCallbackPayload = await request.json();
 
-        console.log('Hubtel Callback Received:', JSON.stringify(payload, null, 2));
+        console.log('=== HUBTEL PAYMENT CALLBACK ===');
+        console.log('Timestamp:', new Date().toISOString());
+        console.log('Payload:', JSON.stringify(payload, null, 2));
 
         // Extract payment details
         const {
@@ -22,46 +25,30 @@ export async function POST(request: NextRequest) {
 
         // Check if payment was successful
         if (isSuccessResponse(ResponseCode) && Status === 'Success' && Data.Status === 'Success') {
-            // Payment successful - you would typically:
-            // 1. Update booking status in database
-            // 2. Send confirmation email to customer
-            // 3. Notify admin of new paid booking
+            // Payment successful
+            console.log('✅ PAYMENT SUCCESSFUL');
+            console.log('Checkout ID:', Data.CheckoutId);
+            console.log('Client Reference:', Data.ClientReference);
+            console.log('Amount:', Data.Amount);
+            console.log('Customer Phone:', Data.CustomerPhoneNumber);
+            console.log('Payment Type:', Data.PaymentDetails?.PaymentType);
+            console.log('Channel:', Data.PaymentDetails?.Channel);
 
-            console.log('Payment Successful:', {
-                checkoutId: Data.CheckoutId,
-                clientReference: Data.ClientReference,
-                amount: Data.Amount,
-                customerPhone: Data.CustomerPhoneNumber,
-                paymentType: Data.PaymentDetails?.PaymentType,
-                channel: Data.PaymentDetails?.Channel
-            });
-
-            // TODO: Implement your business logic here
-            // Example: Update booking in database
-            // await updateBookingStatus(Data.ClientReference, 'paid', {
-            //   hubtelCheckoutId: Data.CheckoutId,
-            //   salesInvoiceId: Data.SalesInvoiceId,
-            //   amount: Data.Amount,
-            //   paymentMethod: Data.PaymentDetails?.PaymentType,
-            //   paidAt: new Date()
-            // });
+            // Note: Email confirmation is sent from the success page
+            // which has access to full booking data stored in localStorage
 
             return NextResponse.json({
                 success: true,
-                message: 'Callback processed successfully'
+                message: 'Payment callback received successfully',
+                reference: Data.ClientReference
             });
         } else {
-            // Payment failed
-            console.log('Payment Failed or Pending:', {
-                responseCode: ResponseCode,
-                status: Status,
-                dataStatus: Data?.Status,
-                description: Data?.Description,
-                clientReference: Data?.ClientReference
-            });
-
-            // TODO: Handle failed payment
-            // await updateBookingStatus(Data.ClientReference, 'payment_failed');
+            // Payment failed or pending
+            console.log('❌ PAYMENT NOT SUCCESSFUL');
+            console.log('Response Code:', ResponseCode);
+            console.log('Status:', Status);
+            console.log('Data Status:', Data?.Status);
+            console.log('Description:', Data?.Description);
 
             return NextResponse.json({
                 success: false,
@@ -70,7 +57,7 @@ export async function POST(request: NextRequest) {
             });
         }
     } catch (error: any) {
-        console.error('Hubtel callback error:', error);
+        console.error('❌ HUBTEL CALLBACK ERROR:', error);
         return NextResponse.json(
             { error: 'Failed to process callback', message: error.message },
             { status: 500 }
@@ -78,10 +65,11 @@ export async function POST(request: NextRequest) {
     }
 }
 
-// Also handle GET requests (for testing/verification)
+// Handle GET requests (for testing/verification)
 export async function GET() {
     return NextResponse.json({
         message: 'Hubtel callback endpoint is active',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        note: 'POST payment notifications to this endpoint'
     });
 }

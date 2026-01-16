@@ -183,6 +183,15 @@ function BookingFormContent() {
 
           if (checkoutData.success && checkoutData.checkoutUrl) {
             setSubmitMessage('Redirecting to payment page...');
+
+            // Store booking data in localStorage for the success page
+            const bookingDataForStorage = {
+              ...bookingData,
+              bookingReference: bookingRef,
+              checkoutId: checkoutData.checkoutId
+            };
+            localStorage.setItem('pendingBooking', JSON.stringify(bookingDataForStorage));
+
             // Redirect to Hubtel checkout page
             window.location.href = checkoutData.checkoutUrl;
             return; // Don't reset form - user will be redirected
