@@ -1,5 +1,6 @@
 
-import '../globals.css';
+
+import '../../globals.css';
 import Link from 'next/link';
 import SignOutButton from './signout-button';
 
