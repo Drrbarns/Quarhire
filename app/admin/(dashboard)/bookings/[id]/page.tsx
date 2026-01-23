@@ -1,8 +1,10 @@
-
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import Link from 'next/link';
 import DriverSelector from './driver-selector';
+import VerifyPaymentButton from './verify-payment-button';
+
+export const dynamic = 'force-dynamic';
 
 export default async function BookingDetailsPage({
     params
@@ -143,6 +145,13 @@ export default async function BookingDetailsPage({
                         bookingId={booking.id}
                         currentDriverId={booking.driver_id}
                         drivers={drivers || []}
+                    />
+
+                    {/* VERIFY PAYMENT BUTTON - only for pending bookings */}
+                    <VerifyPaymentButton
+                        bookingId={booking.id}
+                        paymentReference={booking.payment_reference}
+                        currentStatus={booking.status}
                     />
 
                     <div className="bg-white rounded-2xl border border-[#DDE2E9] shadow-sm p-6">

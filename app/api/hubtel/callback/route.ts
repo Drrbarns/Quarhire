@@ -47,19 +47,50 @@ export async function POST(request: NextRequest) {
             const clientReference = Data.ClientReference;
 
             // Update database
-            const { error: dbError } = await supabaseAdmin
+            const { data: updatedBooking, error: dbError } = await supabaseAdmin
                 .from('bookings')
                 .update({
                     status: 'paid',
                     hubtel_transaction_id: Data.CheckoutId,
                     updated_at: new Date().toISOString()
                 })
-                .eq('payment_reference', clientReference);
+                .eq('payment_reference', clientReference)
+                .select()
+                .single();
 
             if (dbError) {
                 console.error('Failed to update booking status in DB:', dbError);
             } else {
                 console.log(`Booking ${clientReference} marked as PAID in database.`);
+
+                // Send confirmation email NOW that payment is confirmed
+                if (updatedBooking) {
+                    try {
+                        const emailData: BookingEmailData = {
+                            name: updatedBooking.customer_name,
+                            email: updatedBooking.customer_email,
+                            phone: updatedBooking.customer_phone,
+                            pickupLocation: updatedBooking.custom_pickup_location || updatedBooking.pickup_location,
+                            destination: updatedBooking.custom_destination || updatedBooking.destination,
+                            vehicleType: updatedBooking.vehicle_type,
+                            date: updatedBooking.pickup_date,
+                            time: updatedBooking.pickup_time,
+                            passengers: updatedBooking.passengers,
+                            luggage: updatedBooking.luggage,
+                            specialRequests: updatedBooking.special_requests,
+                            estimatedPrice: `GHS ${updatedBooking.price}`,
+                            bookingReference: clientReference,
+                            paymentStatus: 'paid',
+                            paymentReference: clientReference
+                        };
+
+                        const emailResult = await sendBookingEmail(emailData);
+                        console.log('Confirmation email sent:', emailResult);
+                    } catch (emailError) {
+                        console.error('Failed to send confirmation email:', emailError);
+                        // Don't fail the callback - payment was still successful
+                    }
+                }
             }
 
             // Extract customer phone from payment details
@@ -80,6 +111,7 @@ export async function POST(request: NextRequest) {
                 success: true,
                 message: 'Payment callback processed successfully',
                 paymentConfirmed: true,
+                emailSent: true,
                 data: {
                     clientReference: clientReference,
                     amount: Data.Amount,
