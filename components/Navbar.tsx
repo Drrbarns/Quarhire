@@ -9,6 +9,10 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
 
+  // Pages that have white/light backgrounds and need dark navbar text
+  const lightBackgroundPages = ['/booking/success', '/booking/cancelled'];
+  const isLightPage = lightBackgroundPages.some(page => pathname?.startsWith(page));
+
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
@@ -19,8 +23,11 @@ export default function Navbar() {
 
   if (pathname?.startsWith('/admin')) return null;
 
+  // Force scrolled style on light background pages
+  const useScrolledStyle = scrolled || isLightPage;
+
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? 'bg-white shadow-md' : 'bg-transparent'
+    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${useScrolledStyle ? 'bg-white shadow-md' : 'bg-transparent'
       }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-24">
@@ -28,7 +35,7 @@ export default function Navbar() {
           <Link href="/" className="flex items-center gap-3 group">
             <div className="relative">
               <img
-                src={scrolled ? "/black.png" : "/Quarhire.png"}
+                src={useScrolledStyle ? "/black.png" : "/Quarhire.png"}
                 alt="Quarhire Logo"
                 className="h-14 w-auto transition-all duration-300 group-hover:scale-105"
               />
@@ -39,35 +46,35 @@ export default function Navbar() {
           <div className="hidden xl:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
             <Link
               href="/"
-              className={`text-sm font-medium transition-colors duration-300 ${scrolled ? 'text-gray-700 hover:text-[#0074C8]' : 'text-white/90 hover:text-white'
+              className={`text-sm font-medium transition-colors duration-300 ${useScrolledStyle ? 'text-gray-700 hover:text-[#0074C8]' : 'text-white/90 hover:text-white'
                 }`}
             >
               Home
             </Link>
             <Link
               href="/services"
-              className={`text-sm font-medium transition-colors duration-300 ${scrolled ? 'text-gray-700 hover:text-[#0074C8]' : 'text-white/90 hover:text-white'
+              className={`text-sm font-medium transition-colors duration-300 ${useScrolledStyle ? 'text-gray-700 hover:text-[#0074C8]' : 'text-white/90 hover:text-white'
                 }`}
             >
               Services
             </Link>
             <Link
               href="/about"
-              className={`text-sm font-medium transition-colors duration-300 ${scrolled ? 'text-gray-700 hover:text-[#0074C8]' : 'text-white/90 hover:text-white'
+              className={`text-sm font-medium transition-colors duration-300 ${useScrolledStyle ? 'text-gray-700 hover:text-[#0074C8]' : 'text-white/90 hover:text-white'
                 }`}
             >
               About
             </Link>
             <Link
               href="/faqs"
-              className={`text-sm font-medium transition-colors duration-300 ${scrolled ? 'text-gray-700 hover:text-[#0074C8]' : 'text-white/90 hover:text-white'
+              className={`text-sm font-medium transition-colors duration-300 ${useScrolledStyle ? 'text-gray-700 hover:text-[#0074C8]' : 'text-white/90 hover:text-white'
                 }`}
             >
               FAQs
             </Link>
             <Link
               href="/contact"
-              className={`text-sm font-medium transition-colors duration-300 ${scrolled ? 'text-gray-700 hover:text-[#0074C8]' : 'text-white/90 hover:text-white'
+              className={`text-sm font-medium transition-colors duration-300 ${useScrolledStyle ? 'text-gray-700 hover:text-[#0074C8]' : 'text-white/90 hover:text-white'
                 }`}
             >
               Contact
@@ -76,7 +83,7 @@ export default function Navbar() {
 
           {/* CTA Button - Right side */}
           <div className="hidden md:flex items-center gap-4">
-            <div className={`hidden lg:flex items-center gap-2 text-xs font-medium transition-colors duration-300 ${scrolled ? 'text-gray-600' : 'text-white/80'
+            <div className={`hidden lg:flex items-center gap-2 text-xs font-medium transition-colors duration-300 ${useScrolledStyle ? 'text-gray-600' : 'text-white/80'
               }`}>
               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
               <span>24/7 Available</span>
@@ -92,9 +99,9 @@ export default function Navbar() {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className={`md:hidden p-2 rounded-lg transition-colors duration-300 ${scrolled
-                ? 'text-gray-700 hover:bg-gray-100'
-                : 'text-white hover:bg-white/10'
+            className={`md:hidden p-2 rounded-lg transition-colors duration-300 ${useScrolledStyle
+              ? 'text-gray-700 hover:bg-gray-100'
+              : 'text-white hover:bg-white/10'
               }`}
           >
             <i className={`ri-${isOpen ? 'close' : 'menu'}-line text-2xl`}></i>
@@ -104,14 +111,14 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       {isOpen && (
-        <div className={`md:hidden transition-all duration-300 ${scrolled ? 'bg-white border-t border-gray-200' : 'bg-black/95 backdrop-blur-xl border-t border-white/10'
+        <div className={`md:hidden transition-all duration-300 ${useScrolledStyle ? 'bg-white border-t border-gray-200' : 'bg-black/95 backdrop-blur-xl border-t border-white/10'
           }`}>
           <div className="max-w-7xl mx-auto px-4 py-6 space-y-2">
             <Link
               href="/"
               className={`block px-4 py-3 rounded-xl transition-all duration-300 ${scrolled
-                  ? 'text-gray-700 hover:bg-gray-50 hover:text-[#0074C8]'
-                  : 'text-white hover:bg-white/10'
+                ? 'text-gray-700 hover:bg-gray-50 hover:text-[#0074C8]'
+                : 'text-white hover:bg-white/10'
                 }`}
               onClick={() => setIsOpen(false)}
             >
@@ -120,8 +127,8 @@ export default function Navbar() {
             <Link
               href="/services"
               className={`block px-4 py-3 rounded-xl transition-all duration-300 ${scrolled
-                  ? 'text-gray-700 hover:bg-gray-50 hover:text-[#0074C8]'
-                  : 'text-white hover:bg-white/10'
+                ? 'text-gray-700 hover:bg-gray-50 hover:text-[#0074C8]'
+                : 'text-white hover:bg-white/10'
                 }`}
               onClick={() => setIsOpen(false)}
             >
@@ -130,8 +137,8 @@ export default function Navbar() {
             <Link
               href="/about"
               className={`block px-4 py-3 rounded-xl transition-all duration-300 ${scrolled
-                  ? 'text-gray-700 hover:bg-gray-50 hover:text-[#0074C8]'
-                  : 'text-white hover:bg-white/10'
+                ? 'text-gray-700 hover:bg-gray-50 hover:text-[#0074C8]'
+                : 'text-white hover:bg-white/10'
                 }`}
               onClick={() => setIsOpen(false)}
             >
@@ -140,8 +147,8 @@ export default function Navbar() {
             <Link
               href="/faqs"
               className={`block px-4 py-3 rounded-xl transition-all duration-300 ${scrolled
-                  ? 'text-gray-700 hover:bg-gray-50 hover:text-[#0074C8]'
-                  : 'text-white hover:bg-white/10'
+                ? 'text-gray-700 hover:bg-gray-50 hover:text-[#0074C8]'
+                : 'text-white hover:bg-white/10'
                 }`}
               onClick={() => setIsOpen(false)}
             >
@@ -150,8 +157,8 @@ export default function Navbar() {
             <Link
               href="/contact"
               className={`block px-4 py-3 rounded-xl transition-all duration-300 ${scrolled
-                  ? 'text-gray-700 hover:bg-gray-50 hover:text-[#0074C8]'
-                  : 'text-white hover:bg-white/10'
+                ? 'text-gray-700 hover:bg-gray-50 hover:text-[#0074C8]'
+                : 'text-white hover:bg-white/10'
                 }`}
               onClick={() => setIsOpen(false)}
             >

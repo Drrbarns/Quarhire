@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import StatusCheckButton from './status-check-button';
 
 export const dynamic = 'force-dynamic';
 
@@ -114,6 +115,7 @@ export default async function PaymentsPage({
                                     <th className="px-6 py-4 text-left text-xs font-bold text-[#2B2F35] uppercase tracking-wider">Client Ref</th>
                                     <th className="px-6 py-4 text-left text-xs font-bold text-[#2B2F35] uppercase tracking-wider">Status</th>
                                     <th className="px-6 py-4 text-left text-xs font-bold text-[#2B2F35] uppercase tracking-wider">Raw Payload</th>
+                                    <th className="px-6 py-4 text-left text-xs font-bold text-[#2B2F35] uppercase tracking-wider">Status Check</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[#DDE2E9]">
@@ -145,11 +147,16 @@ export default async function PaymentsPage({
                                                 </pre>
                                             </details>
                                         </td>
+                                        <td className="px-6 py-4">
+                                            {log.client_reference && (
+                                                <StatusCheckButton clientReference={log.client_reference} />
+                                            )}
+                                        </td>
                                     </tr>
                                 )) : (
                                     // Provide a clearer message if table not found (migration needed)
                                     <tr>
-                                        <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                                        <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
                                             {logsError ? (
                                                 <div className="flex flex-col items-center gap-2">
                                                     <i className="ri-database-2-line text-2xl text-red-400"></i>
