@@ -67,10 +67,30 @@ export async function POST(request: NextRequest) {
             body: JSON.stringify(checkoutRequest)
         });
 
+
         const data: HubtelCheckoutResponse = await response.json();
 
         // Check if request was successful
         if (isSuccessResponse(data.responseCode)) {
+
+            // Update booking in database with checkoutId if we have a clientReference
+            if (body.clientReference) {
+                const { error: dbError } = await import('@/lib/supabase/admin').then(m => m.supabaseAdmin
+                    .from('bookings')
+                    .update({
+                        hubtel_checkout_id: data.data.checkoutId,
+                        // Update status to confirm we initiated payment
+                        // status: 'pending_payment' // Optional if we want a specific status
+                    })
+                    .eq('payment_reference', body.clientReference)
+                );
+
+                if (dbError) {
+                    console.error('Failed to update booking with checkout ID:', dbError);
+                    // Don't fail the request, just log it
+                }
+            }
+
             return NextResponse.json({
                 success: true,
                 checkoutUrl: data.data.checkoutUrl,

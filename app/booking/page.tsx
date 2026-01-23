@@ -70,6 +70,31 @@ function BookingFormContent() {
       // Generate booking reference
       const bookingRef = `QRHRE-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
 
+      // Save to Database first
+      try {
+        const dbResponse = await fetch('/api/bookings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...formData,
+            estimatedPrice: `GHS ${priceBreakdown.total}`,
+            paymentStatus: includePayment ? 'pending' : 'pending',
+            paymentReference: bookingRef,
+            bookingReference: bookingRef
+          })
+        });
+
+        if (!dbResponse.ok) {
+          console.error('Failed to save booking to database');
+          // We continue to email/payment as failover, but log the error
+        } else {
+          const dbResult = await dbResponse.json();
+          console.log('Booking saved to DB:', dbResult);
+        }
+      } catch (dbError) {
+        console.error('Database save error:', dbError);
+      }
+
       // Prepare email data for the booking email API
       const emailData = {
         name: formData.name,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { type HubtelCallbackPayload, isSuccessResponse } from '@/lib/hubtel';
 import { sendBookingEmail, type BookingEmailData } from '@/lib/email';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 /**
  * API Route: Hubtel Payment Callback
@@ -30,13 +31,21 @@ export async function POST(request: NextRequest) {
             // The client reference format is: QRH-{timestamp}-{random}
             const clientReference = Data.ClientReference;
 
-            // Try to get booking details from the request headers or metadata
-            // Since Hubtel doesn't send back our original booking data,
-            // we need to store and retrieve it - but since we're not using a database,
-            // we'll use the data that Hubtel provides and construct a confirmation
+            // Update database
+            const { error: dbError } = await supabaseAdmin
+                .from('bookings')
+                .update({
+                    status: 'paid',
+                    hubtel_transaction_id: Data.CheckoutId,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('payment_reference', clientReference);
 
-            // For paid bookings, the description contains booking info
-            const description = Data.Description || '';
+            if (dbError) {
+                console.error('Failed to update booking status in DB:', dbError);
+            } else {
+                console.log(`Booking ${clientReference} marked as PAID in database.`);
+            }
 
             // Extract customer phone from payment details
             const customerPhone = Data.CustomerPhoneNumber || Data.PaymentDetails?.MobileMoneyNumber || '';
@@ -51,14 +60,6 @@ export async function POST(request: NextRequest) {
                 channel: Data.PaymentDetails?.Channel,
                 salesInvoiceId: Data.SalesInvoiceId
             });
-
-            // Note: Since we can't store booking details without a database,
-            // we'll need to send a simplified confirmation or 
-            // the booking form should already send emails when payment is initiated
-
-            // The main confirmation emails are sent when the booking is created
-            // This callback confirms the payment was successful
-            // We can send a "Payment Confirmed" notification here
 
             return NextResponse.json({
                 success: true,

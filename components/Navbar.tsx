@@ -2,10 +2,12 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -15,18 +17,19 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  if (pathname?.startsWith('/admin')) return null;
+
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-      scrolled ? 'bg-white shadow-md' : 'bg-transparent'
-    }`}>
+    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? 'bg-white shadow-md' : 'bg-transparent'
+      }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-24">
           {/* Logo - Centered */}
           <Link href="/" className="flex items-center gap-3 group">
             <div className="relative">
-              <img 
-                src={scrolled ? "/black.png" : "/Quarhire.png"} 
-                alt="Quarhire Logo" 
+              <img
+                src={scrolled ? "/black.png" : "/Quarhire.png"}
+                alt="Quarhire Logo"
                 className="h-14 w-auto transition-all duration-300 group-hover:scale-105"
               />
             </div>
@@ -34,43 +37,38 @@ export default function Navbar() {
 
           {/* Desktop Navigation - Left side */}
           <div className="hidden xl:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
-            <Link 
-              href="/" 
-              className={`text-sm font-medium transition-colors duration-300 ${
-                scrolled ? 'text-gray-700 hover:text-[#0074C8]' : 'text-white/90 hover:text-white'
-              }`}
+            <Link
+              href="/"
+              className={`text-sm font-medium transition-colors duration-300 ${scrolled ? 'text-gray-700 hover:text-[#0074C8]' : 'text-white/90 hover:text-white'
+                }`}
             >
               Home
             </Link>
-            <Link 
-              href="/services" 
-              className={`text-sm font-medium transition-colors duration-300 ${
-                scrolled ? 'text-gray-700 hover:text-[#0074C8]' : 'text-white/90 hover:text-white'
-              }`}
+            <Link
+              href="/services"
+              className={`text-sm font-medium transition-colors duration-300 ${scrolled ? 'text-gray-700 hover:text-[#0074C8]' : 'text-white/90 hover:text-white'
+                }`}
             >
               Services
             </Link>
-            <Link 
-              href="/about" 
-              className={`text-sm font-medium transition-colors duration-300 ${
-                scrolled ? 'text-gray-700 hover:text-[#0074C8]' : 'text-white/90 hover:text-white'
-              }`}
+            <Link
+              href="/about"
+              className={`text-sm font-medium transition-colors duration-300 ${scrolled ? 'text-gray-700 hover:text-[#0074C8]' : 'text-white/90 hover:text-white'
+                }`}
             >
               About
             </Link>
-            <Link 
-              href="/faqs" 
-              className={`text-sm font-medium transition-colors duration-300 ${
-                scrolled ? 'text-gray-700 hover:text-[#0074C8]' : 'text-white/90 hover:text-white'
-              }`}
+            <Link
+              href="/faqs"
+              className={`text-sm font-medium transition-colors duration-300 ${scrolled ? 'text-gray-700 hover:text-[#0074C8]' : 'text-white/90 hover:text-white'
+                }`}
             >
               FAQs
             </Link>
-            <Link 
-              href="/contact" 
-              className={`text-sm font-medium transition-colors duration-300 ${
-                scrolled ? 'text-gray-700 hover:text-[#0074C8]' : 'text-white/90 hover:text-white'
-              }`}
+            <Link
+              href="/contact"
+              className={`text-sm font-medium transition-colors duration-300 ${scrolled ? 'text-gray-700 hover:text-[#0074C8]' : 'text-white/90 hover:text-white'
+                }`}
             >
               Contact
             </Link>
@@ -78,14 +76,13 @@ export default function Navbar() {
 
           {/* CTA Button - Right side */}
           <div className="hidden md:flex items-center gap-4">
-            <div className={`hidden lg:flex items-center gap-2 text-xs font-medium transition-colors duration-300 ${
-              scrolled ? 'text-gray-600' : 'text-white/80'
-            }`}>
+            <div className={`hidden lg:flex items-center gap-2 text-xs font-medium transition-colors duration-300 ${scrolled ? 'text-gray-600' : 'text-white/80'
+              }`}>
               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
               <span>24/7 Available</span>
             </div>
-            <Link 
-              href="/booking" 
+            <Link
+              href="/booking"
               className="px-6 py-3 bg-[#0074C8] text-white rounded-full font-semibold text-sm transition-all duration-300 hover:bg-[#005da0] hover:shadow-lg hover:shadow-[#0074C8]/30 hover:scale-105"
             >
               Request Pickup
@@ -95,11 +92,10 @@ export default function Navbar() {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className={`md:hidden p-2 rounded-lg transition-colors duration-300 ${
-              scrolled 
-                ? 'text-gray-700 hover:bg-gray-100' 
+            className={`md:hidden p-2 rounded-lg transition-colors duration-300 ${scrolled
+                ? 'text-gray-700 hover:bg-gray-100'
                 : 'text-white hover:bg-white/10'
-            }`}
+              }`}
           >
             <i className={`ri-${isOpen ? 'close' : 'menu'}-line text-2xl`}></i>
           </button>
@@ -108,68 +104,62 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       {isOpen && (
-        <div className={`md:hidden transition-all duration-300 ${
-          scrolled ? 'bg-white border-t border-gray-200' : 'bg-black/95 backdrop-blur-xl border-t border-white/10'
-        }`}>
+        <div className={`md:hidden transition-all duration-300 ${scrolled ? 'bg-white border-t border-gray-200' : 'bg-black/95 backdrop-blur-xl border-t border-white/10'
+          }`}>
           <div className="max-w-7xl mx-auto px-4 py-6 space-y-2">
-            <Link 
-              href="/" 
-              className={`block px-4 py-3 rounded-xl transition-all duration-300 ${
-                scrolled 
-                  ? 'text-gray-700 hover:bg-gray-50 hover:text-[#0074C8]' 
+            <Link
+              href="/"
+              className={`block px-4 py-3 rounded-xl transition-all duration-300 ${scrolled
+                  ? 'text-gray-700 hover:bg-gray-50 hover:text-[#0074C8]'
                   : 'text-white hover:bg-white/10'
-              }`}
+                }`}
               onClick={() => setIsOpen(false)}
             >
               Home
             </Link>
-            <Link 
-              href="/services" 
-              className={`block px-4 py-3 rounded-xl transition-all duration-300 ${
-                scrolled 
-                  ? 'text-gray-700 hover:bg-gray-50 hover:text-[#0074C8]' 
+            <Link
+              href="/services"
+              className={`block px-4 py-3 rounded-xl transition-all duration-300 ${scrolled
+                  ? 'text-gray-700 hover:bg-gray-50 hover:text-[#0074C8]'
                   : 'text-white hover:bg-white/10'
-              }`}
+                }`}
               onClick={() => setIsOpen(false)}
             >
               Services
             </Link>
-            <Link 
-              href="/about" 
-              className={`block px-4 py-3 rounded-xl transition-all duration-300 ${
-                scrolled 
-                  ? 'text-gray-700 hover:bg-gray-50 hover:text-[#0074C8]' 
+            <Link
+              href="/about"
+              className={`block px-4 py-3 rounded-xl transition-all duration-300 ${scrolled
+                  ? 'text-gray-700 hover:bg-gray-50 hover:text-[#0074C8]'
                   : 'text-white hover:bg-white/10'
-              }`}
+                }`}
               onClick={() => setIsOpen(false)}
             >
               About
             </Link>
-            <Link 
-              href="/faqs" 
-              className={`block px-4 py-3 rounded-xl transition-all duration-300 ${
-                scrolled 
-                  ? 'text-gray-700 hover:bg-gray-50 hover:text-[#0074C8]' 
+            <Link
+              href="/faqs"
+              className={`block px-4 py-3 rounded-xl transition-all duration-300 ${scrolled
+                  ? 'text-gray-700 hover:bg-gray-50 hover:text-[#0074C8]'
                   : 'text-white hover:bg-white/10'
-              }`}
+                }`}
               onClick={() => setIsOpen(false)}
             >
               FAQs
             </Link>
-            <Link 
-              href="/contact" 
-              className={`block px-4 py-3 rounded-xl transition-all duration-300 ${
-                scrolled 
-                  ? 'text-gray-700 hover:bg-gray-50 hover:text-[#0074C8]' 
+            <Link
+              href="/contact"
+              className={`block px-4 py-3 rounded-xl transition-all duration-300 ${scrolled
+                  ? 'text-gray-700 hover:bg-gray-50 hover:text-[#0074C8]'
                   : 'text-white hover:bg-white/10'
-              }`}
+                }`}
               onClick={() => setIsOpen(false)}
             >
               Contact
             </Link>
             <div className="pt-4">
-              <Link 
-                href="/booking" 
+              <Link
+                href="/booking"
                 className="block w-full text-center px-4 py-3 bg-[#0074C8] text-white rounded-xl font-semibold transition-all duration-300 hover:bg-[#005da0]"
                 onClick={() => setIsOpen(false)}
               >
