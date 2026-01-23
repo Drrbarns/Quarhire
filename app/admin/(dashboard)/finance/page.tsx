@@ -1,7 +1,8 @@
-
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { formatCurrency } from '@/lib/utils';
 import { SimpleChart } from '../charts';
+
+export const dynamic = 'force-dynamic';
 
 // Helper to get day name
 const getDayName = (dateStr: string) => {

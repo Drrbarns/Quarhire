@@ -1,8 +1,8 @@
-
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { formatDate, formatCurrency } from '@/lib/utils';
-
 import Link from 'next/link';
+
+export const dynamic = 'force-dynamic';
 
 export default async function BookingsPage() {
     // Fetch bookings using Admin client to bypass RLS for this internal dashboard

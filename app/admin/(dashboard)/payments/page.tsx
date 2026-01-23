@@ -1,6 +1,7 @@
-
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { formatCurrency, formatDate } from '@/lib/utils';
+
+export const dynamic = 'force-dynamic';
 
 export default async function PaymentsPage({
     searchParams
@@ -37,8 +38,8 @@ export default async function PaymentsPage({
                 <a
                     href="/admin/payments?tab=transactions"
                     className={`pb-4 text-sm font-bold border-b-2 transition-colors ${activeTab === 'transactions'
-                            ? 'border-[#0074C8] text-[#0074C8]'
-                            : 'border-transparent text-gray-500 hover:text-[#0A0A0A]'
+                        ? 'border-[#0074C8] text-[#0074C8]'
+                        : 'border-transparent text-gray-500 hover:text-[#0A0A0A]'
                         }`}
                 >
                     Successful Transactions
@@ -46,8 +47,8 @@ export default async function PaymentsPage({
                 <a
                     href="/admin/payments?tab=logs"
                     className={`pb-4 text-sm font-bold border-b-2 transition-colors ${activeTab === 'logs'
-                            ? 'border-[#0074C8] text-[#0074C8]'
-                            : 'border-transparent text-gray-500 hover:text-[#0A0A0A]'
+                        ? 'border-[#0074C8] text-[#0074C8]'
+                        : 'border-transparent text-gray-500 hover:text-[#0A0A0A]'
                         }`}
                 >
                     Hubtel Callbacks (Raw Logs)

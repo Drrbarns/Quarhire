@@ -1,6 +1,7 @@
-
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import DriverForm from './driver-form';
+
+export const dynamic = 'force-dynamic';
 
 export default async function DriversPage() {
     // Fetch drivers from Supabase
