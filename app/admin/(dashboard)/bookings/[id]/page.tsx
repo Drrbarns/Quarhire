@@ -2,6 +2,7 @@
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import Link from 'next/link';
+import DriverSelector from './driver-selector';
 
 export default async function BookingDetailsPage({
     params
@@ -15,6 +16,19 @@ export default async function BookingDetailsPage({
         .select('*')
         .eq('id', id)
         .single();
+
+    // Fetch active drivers to populate selection if drivers table exists
+    let drivers = [];
+    try {
+        const { data } = await supabaseAdmin
+            .from('drivers')
+            .select('*')
+            .eq('status', 'active');
+        drivers = data || [];
+    } catch (e) {
+        // Table might not exist yet
+        console.warn('Drivers table access failed', e);
+    }
 
     if (error || !booking) {
         return (
@@ -124,11 +138,18 @@ export default async function BookingDetailsPage({
 
                 {/* Sidebar Info */}
                 <div className="space-y-6">
+                    {/* DRIVER ASSIGNMENT WIDGET */}
+                    <DriverSelector
+                        bookingId={booking.id}
+                        currentDriverId={booking.driver_id}
+                        drivers={drivers || []}
+                    />
+
                     <div className="bg-white rounded-2xl border border-[#DDE2E9] shadow-sm p-6">
                         <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-4">Payment Status</h3>
                         <div className={`mb-6 p-4 rounded-xl flex items-center justify-between ${booking.status === 'paid' ? 'bg-green-50 text-green-700' :
-                                booking.status === 'pending' ? 'bg-yellow-50 text-yellow-700' :
-                                    'bg-gray-50 text-gray-700'
+                            booking.status === 'pending' ? 'bg-yellow-50 text-yellow-700' :
+                                'bg-gray-50 text-gray-700'
                             }`}>
                             <span className="font-bold capitalize flex items-center gap-2">
                                 <i className={`ri-${booking.status === 'paid' ? 'check-line' : 'time-line'}`}></i>

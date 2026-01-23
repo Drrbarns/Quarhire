@@ -26,7 +26,7 @@ interface DataPoint {
 }
 
 interface ChartComponentProps {
-    data: DataPoint[];
+    data: any[];
     type?: 'pie' | 'bar' | 'line' | 'area';
     dataKey?: string;
     title?: string;
