@@ -23,6 +23,21 @@ export async function POST(request: NextRequest) {
             Data
         } = payload;
 
+        // Log raw callback to database
+        const { error: logError } = await supabaseAdmin
+            .from('hubtel_callbacks')
+            .insert({
+                client_reference: Data?.ClientReference,
+                checkout_id: Data?.CheckoutId,
+                status: Status, // 'Success' or other status
+                amount: Data?.Amount,
+                payload: payload
+            });
+
+        if (logError) {
+            console.error('Failed to log Hubtel callback to DB:', logError);
+        }
+
         // Check if payment was successful
         if (isSuccessResponse(ResponseCode) && Status === 'Success' && Data.Status === 'Success') {
             console.log('Payment Successful - Processing confirmation emails...');

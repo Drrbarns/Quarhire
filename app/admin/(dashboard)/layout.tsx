@@ -36,6 +36,17 @@ export default function AdminLayout({
                         <i className="ri-user-line"></i>
                         Customers
                     </Link>
+                    <div className="pt-2 pb-1 px-4 text-xs font-semibold text-white/40 uppercase tracking-wider">
+                        Financials
+                    </div>
+                    <Link href="/admin/finance" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-white/70 hover:text-white transition-all">
+                        <i className="ri-funds-line"></i>
+                        Finance
+                    </Link>
+                    <Link href="/admin/payments" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-white/70 hover:text-white transition-all">
+                        <i className="ri-secure-payment-line"></i>
+                        Payments
+                    </Link>
                 </nav>
 
                 <div className="p-4 border-t border-white/10">
