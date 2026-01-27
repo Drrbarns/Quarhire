@@ -29,8 +29,9 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Call Hubtel Status Check API
-        const statusUrl = `${HUBTEL_STATUS_ENDPOINT}/${merchantAccountNumber}/status?clientReference=${encodeURIComponent(clientReference)}`;
+        // Call Hubtel Status Check API (Alternative Endpoint)
+        // Endpoint format: https://api-topup.hubtel.com/transactions/status?clientreference={ref}&hubtelmerchantaccountid={id}
+        const statusUrl = `${HUBTEL_STATUS_ENDPOINT}/status?clientreference=${encodeURIComponent(clientReference)}&hubtelmerchantaccountid=${merchantAccountNumber}`;
 
         console.log('Checking transaction status:', statusUrl);
 
@@ -39,7 +40,9 @@ export async function POST(request: NextRequest) {
             headers: {
                 'Authorization': getHubtelAuthHeader(),
                 'Content-Type': 'application/json',
-                'Cache-Control': 'no-cache'
+                'Accept': 'application/json',
+                'Cache-Control': 'no-cache',
+                'User-Agent': 'Quarhire-App/1.0'
             }
         });
 

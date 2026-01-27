@@ -90,7 +90,7 @@ export interface BookingData {
 
 // API Constants
 export const HUBTEL_API_ENDPOINT = 'https://payproxyapi.hubtel.com/items/initiate';
-export const HUBTEL_STATUS_ENDPOINT = 'https://api-txnstatus.hubtel.com/transactions';
+export const HUBTEL_STATUS_ENDPOINT = 'https://api-topup.hubtel.com/transactions';
 
 /**
  * Generate a unique payment reference (max 32 characters)
