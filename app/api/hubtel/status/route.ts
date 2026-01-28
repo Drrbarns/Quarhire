@@ -69,21 +69,44 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        const data: HubtelStatusCheckResponse = await response.json();
+        const result = await response.json();
+        console.log('Hubtel Raw Status Response:', JSON.stringify(result));
+
+        // Normalize data structure (Handle PascalCase vs camelCase)
+        // Hubtel often uses PascalCase (ResponseCode, Data)
+        const responseData = result.Data || result.data;
+
+        let transactionData = null;
+
+        // Handle if Data is an array (sometimes returns list of transactions)
+        if (Array.isArray(responseData)) {
+            // Take the first one (most recent)
+            transactionData = responseData[0];
+        } else {
+            transactionData = responseData;
+        }
+
+        if (!transactionData) {
+            console.error('No transaction data found in response');
+            return NextResponse.json({ success: false, status: 'Unknown', debug: result });
+        }
+
+        const status = transactionData.Status || transactionData.status;
+        // Check for various success strings just in case
+        const isPaid = status === 'Paid' || status === 'Success' || status === 'Successful';
 
         // Return formatted status response
         return NextResponse.json({
             success: true,
-            status: data.data.status,
+            status: status,
             transaction: {
-                clientReference: data.data.clientReference,
-                transactionId: data.data.transactionId,
-                amount: data.data.amount,
-                charges: data.data.charges,
-                amountAfterCharges: data.data.amountAfterCharges,
-                paymentMethod: data.data.paymentMethod,
-                date: data.data.date,
-                isPaid: data.data.status === 'Paid'
+                clientReference: transactionData.ClientReference || transactionData.clientReference,
+                transactionId: transactionData.TransactionId || transactionData.transactionId,
+                amount: transactionData.Amount || transactionData.amount,
+                charges: transactionData.Charges || transactionData.charges,
+                paymentMethod: transactionData.PaymentMethod || transactionData.paymentMethod,
+                date: transactionData.Date || transactionData.date,
+                isPaid: isPaid
             }
         });
     } catch (error: any) {
