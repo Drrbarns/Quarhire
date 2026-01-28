@@ -35,15 +35,19 @@ export async function GET(request: NextRequest) {
 
         const merchantAccountNumber = process.env.HUBTEL_MERCHANT_ACCOUNT_NUMBER;
 
-        // Build status check URL
-        const statusUrl = `${HUBTEL_STATUS_ENDPOINT}/${merchantAccountNumber}/status?clientReference=${clientReference}`;
+        // Build status check URL (Alternative Endpoint)
+        // Endpoint format: https://api-topup.hubtel.com/transactions/status?clientreference={ref}&hubtelmerchantaccountid={id}
+        const statusUrl = `${HUBTEL_STATUS_ENDPOINT}/status?clientreference=${encodeURIComponent(clientReference)}&hubtelmerchantaccountid=${merchantAccountNumber}`;
 
         // Make request to Hubtel Status API
         const response = await fetch(statusUrl, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': getHubtelAuthHeader()
+                'Authorization': getHubtelAuthHeader(),
+                'Accept': 'application/json',
+                'User-Agent': 'Quarhire-App/1.0',
+                'Cache-Control': 'no-cache'
             }
         });
 
