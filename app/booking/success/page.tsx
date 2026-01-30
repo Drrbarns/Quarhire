@@ -31,7 +31,6 @@ function SuccessContent() {
     const [paymentStatus, setPaymentStatus] = useState<'checking' | 'success' | 'pending' | 'failed'>('checking');
     const [emailSent, setEmailSent] = useState(false);
     const [bookingData, setBookingData] = useState<BookingData | null>(null);
-    const [debugInfo, setDebugInfo] = useState<any>(null);
 
     useEffect(() => {
         // Retrieve booking data from localStorage
@@ -56,8 +55,6 @@ function SuccessContent() {
                     const response = await fetch(`/api/hubtel/status?clientReference=${reference}`);
                     const data = await response.json();
 
-                    setDebugInfo(data); // Capture debug info
-
                     if (data.success && data.transaction?.isPaid) {
                         setPaymentStatus('success');
                         // Send confirmation emails
@@ -75,7 +72,6 @@ function SuccessContent() {
                     }
                 } catch (error: any) {
                     console.error('Status check error:', error);
-                    setDebugInfo({ error: error.message || 'Fetch failed' });
                     // If status check fails, assume payment was successful (customer redirected back)
                     setPaymentStatus('success');
                     await sendConfirmationEmails();
@@ -287,16 +283,6 @@ function SuccessContent() {
                             </div>
                         </div>
                     </div>
-
-                    {/* Debug Info (Temporary) */}
-                    {debugInfo && (
-                        <div className="mt-8 p-4 bg-gray-100 rounded text-left overflow-auto max-w-4xl mx-auto">
-                            <p className="font-bold text-xs text-gray-500 mb-2">DEBUG INFO:</p>
-                            <pre className="text-xs font-mono whitespace-pre-wrap text-black">
-                                {JSON.stringify(debugInfo, null, 2)}
-                            </pre>
-                        </div>
-                    )}
                 </div>
             </section>
         </main>

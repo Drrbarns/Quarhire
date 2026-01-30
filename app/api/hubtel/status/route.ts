@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
-    HUBTEL_STATUS_ENDPOINT,
-    getHubtelAuthHeader,
     isHubtelConfigured,
-    type HubtelStatusCheckResponse
+    hubtelGetTransactionStatus
 } from '@/lib/hubtel';
 
 /**
@@ -11,7 +9,7 @@ import {
  * GET /api/hubtel/status?clientReference=xxx
  * 
  * Checks the status of a payment transaction
- * Required when callback is not received within 5 minutes
+ * Used by the success page to verify payment
  */
 export async function GET(request: NextRequest) {
     try {
@@ -33,29 +31,15 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        const merchantAccountNumber = process.env.HUBTEL_MERCHANT_ACCOUNT_NUMBER;
+        // Use the centralized verification function
+        const result = await hubtelGetTransactionStatus(clientReference);
 
-        // Build status check URL (Alternative Endpoint)
-        // Endpoint format: https://api-topup.hubtel.com/transactions/status?clientreference={ref}&hubtelmerchantaccountid={id}
-        const statusUrl = `${HUBTEL_STATUS_ENDPOINT}/status?clientreference=${encodeURIComponent(clientReference)}&hubtelmerchantaccountid=${merchantAccountNumber}`;
-
-        // Make request to Hubtel Status API
-        const response = await fetch(statusUrl, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': getHubtelAuthHeader(),
-                'Accept': 'application/json',
-                'User-Agent': 'Quarhire-App/1.0',
-                'Cache-Control': 'no-cache'
-            }
-        });
-
-        if (!response.ok) {
-            // Handle 403 Forbidden (IP not whitelisted)
-            if (response.status === 403) {
+        if (!result.success) {
+            // Handle 403 specifically for user-friendly message
+            if (result.errorReason?.includes('403') || result.errorReason?.includes('IP not whitelisted')) {
                 return NextResponse.json(
                     {
+                        success: false,
                         error: 'Access denied. Server IP may not be whitelisted with Hubtel.',
                         note: 'Contact your Hubtel Retail Systems Engineer to whitelist your server IP.'
                     },
@@ -64,53 +48,29 @@ export async function GET(request: NextRequest) {
             }
 
             return NextResponse.json(
-                { error: 'Failed to check transaction status' },
-                { status: response.status }
+                {
+                    success: false,
+                    error: result.errorReason || 'Failed to check transaction status'
+                },
+                { status: 500 }
             );
         }
-
-        const result = await response.json();
-        console.log('Hubtel Raw Status Response:', JSON.stringify(result));
-
-        // Normalize data structure (Handle PascalCase vs camelCase)
-        // Hubtel often uses PascalCase (ResponseCode, Data)
-        const responseData = result.Data || result.data;
-
-        let transactionData = null;
-
-        // Handle if Data is an array (sometimes returns list of transactions)
-        if (Array.isArray(responseData)) {
-            // Take the first one (most recent)
-            transactionData = responseData[0];
-        } else {
-            transactionData = responseData;
-        }
-
-        if (!transactionData) {
-            console.error('No transaction data found in response');
-            return NextResponse.json({ success: false, status: 'Unknown', debug: result });
-        }
-
-        const status = transactionData.Status || transactionData.status;
-        // Check for various success strings just in case
-        const isPaid = status === 'Paid' || status === 'Success' || status === 'Successful';
 
         // Return formatted status response
         return NextResponse.json({
             success: true,
-            status: status,
+            status: result.status,
             transaction: {
-                clientReference: transactionData.ClientReference || transactionData.clientReference,
-                transactionId: transactionData.TransactionId || transactionData.transactionId,
-                amount: transactionData.Amount || transactionData.amount,
-                charges: transactionData.Charges || transactionData.charges,
-                paymentMethod: transactionData.PaymentMethod || transactionData.paymentMethod,
-                date: transactionData.Date || transactionData.date,
-                isPaid: isPaid
+                clientReference: result.rawResponse?.clientReference,
+                transactionId: result.transactionId,
+                amount: result.amount,
+                date: result.rawResponse?.date,
+                isPaid: result.status === 'Paid'
             }
         });
+
     } catch (error: any) {
-        console.error('Hubtel status check error:', error);
+        console.error('[Hubtel Status] Error:', error.message);
         return NextResponse.json(
             { error: 'Internal server error', message: error.message },
             { status: 500 }

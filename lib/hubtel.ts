@@ -6,7 +6,10 @@
  * Documentation: https://developers.hubtel.com/docs/business/api_documentation/payment_apis/online_checkout
  */
 
-// Request interfaces
+// =============================================================================
+// INTERFACES
+// =============================================================================
+
 export interface HubtelCheckoutRequest {
     totalAmount: number;
     description: string;
@@ -20,7 +23,6 @@ export interface HubtelCheckoutRequest {
     payeeEmail?: string;
 }
 
-// Response interfaces
 export interface HubtelCheckoutResponse {
     responseCode: string;
     status: string;
@@ -88,9 +90,182 @@ export interface BookingData {
     estimatedPrice: string;
 }
 
-// API Constants
+export interface HubtelVerificationResult {
+    success: boolean;
+    verified: boolean;
+    status: 'Paid' | 'Unpaid' | 'Refunded' | 'Unknown' | 'Error';
+    transactionId?: string;
+    amount?: number;
+    errorReason?: string;
+    rawResponse?: any; // For debugging (never includes secrets)
+}
+
+// =============================================================================
+// API CONSTANTS
+// =============================================================================
+
+// Checkout initiation endpoint
 export const HUBTEL_API_ENDPOINT = 'https://payproxyapi.hubtel.com/items/initiate';
-export const HUBTEL_STATUS_ENDPOINT = 'https://api-topup.hubtel.com/transactions';
+
+// Status check endpoint (CORRECT per Hubtel documentation)
+// Format: https://rmsc.hubtel.com/v1/merchantaccount/merchants/{merchantId}/transactions/status?clientReference={ref}
+export const HUBTEL_BASE_URL = process.env.HUBTEL_BASE_URL || 'https://rmsc.hubtel.com';
+
+// =============================================================================
+// AUTHENTICATION
+// =============================================================================
+
+/**
+ * Get Base64 encoded credentials for Basic Auth
+ * Single source of truth for Hubtel authentication
+ */
+export const getHubtelAuthHeader = (): string => {
+    const clientId = process.env.HUBTEL_CLIENT_ID || '';
+    const clientSecret = process.env.HUBTEL_CLIENT_SECRET || '';
+
+    if (!clientId || !clientSecret) {
+        console.error('[Hubtel] Missing API credentials - check HUBTEL_CLIENT_ID and HUBTEL_CLIENT_SECRET');
+    }
+
+    const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+    return `Basic ${credentials}`;
+};
+
+/**
+ * Validate Hubtel configuration
+ */
+export const isHubtelConfigured = (): boolean => {
+    const clientId = process.env.HUBTEL_CLIENT_ID;
+    const clientSecret = process.env.HUBTEL_CLIENT_SECRET;
+    const merchantAccount = process.env.HUBTEL_MERCHANT_ACCOUNT_NUMBER;
+
+    return !!(
+        clientId &&
+        clientSecret &&
+        merchantAccount &&
+        clientId !== 'your_hubtel_client_id' &&
+        clientSecret !== 'your_hubtel_client_secret' &&
+        merchantAccount !== 'your_hubtel_merchant_account_number'
+    );
+};
+
+// =============================================================================
+// STATUS VERIFICATION (CORE FUNCTION)
+// =============================================================================
+
+/**
+ * Verify transaction status directly with Hubtel's API
+ * This is the ONLY source of truth for payment verification
+ * 
+ * @param clientReference - The unique reference for the transaction
+ * @returns HubtelVerificationResult with verified status
+ */
+export const hubtelGetTransactionStatus = async (
+    clientReference: string
+): Promise<HubtelVerificationResult> => {
+    const merchantId = process.env.HUBTEL_MERCHANT_ACCOUNT_NUMBER;
+
+    if (!merchantId) {
+        return {
+            success: false,
+            verified: false,
+            status: 'Error',
+            errorReason: 'HUBTEL_MERCHANT_ACCOUNT_NUMBER not configured'
+        };
+    }
+
+    if (!clientReference) {
+        return {
+            success: false,
+            verified: false,
+            status: 'Error',
+            errorReason: 'clientReference is required'
+        };
+    }
+
+    // Build the correct URL per Hubtel documentation
+    const statusUrl = `${HUBTEL_BASE_URL}/v1/merchantaccount/merchants/${merchantId}/transactions/status?clientReference=${encodeURIComponent(clientReference)}`;
+
+    console.log('[Hubtel] Checking transaction status for:', clientReference);
+    // NOTE: We intentionally do NOT log the full URL as it could reveal merchant ID patterns
+
+    try {
+        const response = await fetch(statusUrl, {
+            method: 'GET',
+            headers: {
+                'Authorization': getHubtelAuthHeader(),
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache',
+                'User-Agent': 'Quarhire-App/1.0'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('[Hubtel] Status check failed:', response.status);
+            // Don't log errorText as it might contain sensitive info in some edge cases
+
+            return {
+                success: false,
+                verified: false,
+                status: 'Error',
+                errorReason: `HTTP ${response.status}: ${response.status === 403 ? 'IP not whitelisted or invalid credentials' : 'Request failed'}`
+            };
+        }
+
+        const result = await response.json();
+        console.log('[Hubtel] Status check response received');
+
+        // Normalize response (handle both PascalCase and camelCase)
+        const responseCode = result.ResponseCode || result.responseCode;
+        const data = result.Data || result.data;
+
+        // Handle array responses (some endpoints return arrays)
+        const transactionData = Array.isArray(data) ? data[0] : data;
+
+        if (!transactionData) {
+            return {
+                success: true,
+                verified: false,
+                status: 'Unknown',
+                errorReason: 'No transaction data in response',
+                rawResponse: result
+            };
+        }
+
+        const status = transactionData.Status || transactionData.status;
+        const isPaid = status === 'Paid' || status === 'Success' || status === 'Successful';
+
+        return {
+            success: true,
+            verified: true,
+            status: isPaid ? 'Paid' : (status === 'Unpaid' ? 'Unpaid' : (status === 'Refunded' ? 'Refunded' : 'Unknown')),
+            transactionId: transactionData.TransactionId || transactionData.transactionId,
+            amount: transactionData.Amount || transactionData.amount,
+            rawResponse: {
+                responseCode,
+                status,
+                clientReference: transactionData.ClientReference || transactionData.clientReference,
+                amount: transactionData.Amount || transactionData.amount,
+                date: transactionData.Date || transactionData.date
+            }
+        };
+
+    } catch (error: any) {
+        console.error('[Hubtel] Status check error:', error.message);
+        return {
+            success: false,
+            verified: false,
+            status: 'Error',
+            errorReason: `Network error: ${error.message}`
+        };
+    }
+};
+
+// =============================================================================
+// UTILITY FUNCTIONS
+// =============================================================================
 
 /**
  * Generate a unique payment reference (max 32 characters)
@@ -138,7 +313,7 @@ export const createCheckoutRequest = (
     const merchantAccountNumber = process.env.HUBTEL_MERCHANT_ACCOUNT_NUMBER || '';
 
     return {
-        totalAmount: parseFloat(totalAmount.toFixed(2)), // Ensure 2 decimal places
+        totalAmount: parseFloat(totalAmount.toFixed(2)),
         description: formatBookingDescription(bookingData),
         callbackUrl: `${baseUrl}/api/hubtel/callback`,
         returnUrl: `${baseUrl}/booking/success?ref=${clientReference}`,
@@ -149,34 +324,6 @@ export const createCheckoutRequest = (
         payeeMobileNumber: bookingData.phone,
         payeeEmail: bookingData.email
     };
-};
-
-/**
- * Validate Hubtel configuration
- */
-export const isHubtelConfigured = (): boolean => {
-    const clientId = process.env.HUBTEL_CLIENT_ID;
-    const clientSecret = process.env.HUBTEL_CLIENT_SECRET;
-    const merchantAccount = process.env.HUBTEL_MERCHANT_ACCOUNT_NUMBER;
-
-    return !!(
-        clientId &&
-        clientSecret &&
-        merchantAccount &&
-        clientId !== 'your_hubtel_client_id' &&
-        clientSecret !== 'your_hubtel_client_secret' &&
-        merchantAccount !== 'your_hubtel_merchant_account_number'
-    );
-};
-
-/**
- * Get Base64 encoded credentials for Basic Auth
- */
-export const getHubtelAuthHeader = (): string => {
-    const clientId = process.env.HUBTEL_CLIENT_ID || '';
-    const clientSecret = process.env.HUBTEL_CLIENT_SECRET || '';
-    const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
-    return `Basic ${credentials}`;
 };
 
 /**

@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getHubtelAuthHeader, HUBTEL_STATUS_ENDPOINT, type HubtelStatusCheckResponse } from '@/lib/hubtel';
+import { hubtelGetTransactionStatus } from '@/lib/hubtel';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { sendBookingEmail, type BookingEmailData } from '@/lib/email';
 
 /**
- * API Route: Hubtel Transaction Status Check
+ * API Route: Hubtel Transaction Status Check (Admin Use)
  * POST /api/hubtel/status-check
  * 
  * Checks the status of a transaction with Hubtel's Status API
  * Use this for pending transactions that haven't received a callback
+ * Also used by the admin dashboard "Verify Payment" button
  */
 export async function POST(request: NextRequest) {
     try {
@@ -21,49 +22,21 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const merchantAccountNumber = process.env.HUBTEL_MERCHANT_ACCOUNT_NUMBER;
-        if (!merchantAccountNumber) {
-            return NextResponse.json(
-                { error: 'Merchant account not configured' },
-                { status: 500 }
-            );
+        console.log('[Status Check] Checking transaction:', clientReference);
+
+        // Use centralized verification function
+        const result = await hubtelGetTransactionStatus(clientReference);
+
+        if (!result.success) {
+            return NextResponse.json({
+                success: false,
+                error: result.errorReason || 'Failed to check transaction status',
+                rawResponse: result.rawResponse
+            }, { status: 500 });
         }
 
-        // Call Hubtel Status Check API (Alternative Endpoint)
-        // Endpoint format: https://api-topup.hubtel.com/transactions/status?clientreference={ref}&hubtelmerchantaccountid={id}
-        const statusUrl = `${HUBTEL_STATUS_ENDPOINT}/status?clientreference=${encodeURIComponent(clientReference)}&hubtelmerchantaccountid=${merchantAccountNumber}`;
-
-        console.log('Checking transaction status:', statusUrl);
-
-        const response = await fetch(statusUrl, {
-            method: 'GET',
-            headers: {
-                'Authorization': getHubtelAuthHeader(),
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'Cache-Control': 'no-cache',
-                'User-Agent': 'Quarhire-App/1.0'
-            }
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Hubtel status check failed:', response.status, errorText);
-            return NextResponse.json(
-                {
-                    error: 'Failed to check transaction status',
-                    status: response.status,
-                    message: errorText
-                },
-                { status: response.status }
-            );
-        }
-
-        const result: HubtelStatusCheckResponse = await response.json();
-        console.log('Hubtel Status Check Result:', result);
-
-        // If transaction is Paid but our booking is still pending, update it
-        if (result.responseCode === '0000' && result.data?.status === 'Paid') {
+        // If transaction is Paid, update our booking
+        if (result.verified && result.status === 'Paid') {
             const { data: booking, error: fetchError } = await supabaseAdmin
                 .from('bookings')
                 .select('*')
@@ -71,22 +44,32 @@ export async function POST(request: NextRequest) {
                 .single();
 
             if (fetchError) {
-                console.error('Error fetching booking:', fetchError);
-            } else if (booking && booking.status !== 'paid') {
-                // Update booking to paid
+                console.error('[Status Check] Error fetching booking:', fetchError);
+                return NextResponse.json({
+                    success: true,
+                    status: 'Paid',
+                    message: 'Transaction is paid but booking not found in database',
+                    rawResponse: result.rawResponse
+                });
+            }
+
+            // Idempotent: Only update if not already paid
+            if (booking && booking.status !== 'paid') {
                 const { error: updateError } = await supabaseAdmin
                     .from('bookings')
                     .update({
                         status: 'paid',
-                        hubtel_transaction_id: result.data.transactionId,
+                        hubtel_transaction_id: result.transactionId,
+                        payment_verified_at: new Date().toISOString(),
                         updated_at: new Date().toISOString()
                     })
-                    .eq('id', booking.id);
+                    .eq('id', booking.id)
+                    .eq('status', 'pending'); // Extra safety
 
                 if (updateError) {
-                    console.error('Error updating booking:', updateError);
+                    console.error('[Status Check] Error updating booking:', updateError);
                 } else {
-                    console.log(`Booking ${clientReference} updated to PAID via status check.`);
+                    console.log('[Status Check] Booking updated to PAID:', clientReference);
 
                     // Send confirmation email
                     try {
@@ -109,37 +92,56 @@ export async function POST(request: NextRequest) {
                         };
 
                         await sendBookingEmail(emailData);
-                        console.log('Confirmation email sent after status check.');
+                        console.log('[Status Check] Confirmation email sent');
                     } catch (emailError) {
-                        console.error('Failed to send email after status check:', emailError);
+                        console.error('[Status Check] Failed to send email:', emailError);
                     }
                 }
+
+                return NextResponse.json({
+                    success: true,
+                    status: 'Paid',
+                    message: 'Transaction is paid and booking updated',
+                    bookingUpdated: true,
+                    rawResponse: result.rawResponse
+                });
             }
 
             return NextResponse.json({
                 success: true,
                 status: 'Paid',
-                message: 'Transaction is paid',
-                bookingUpdated: booking?.status !== 'paid',
-                data: result.data
+                message: 'Transaction is paid (booking already up to date)',
+                bookingUpdated: false,
+                rawResponse: result.rawResponse
             });
-        } else if (result.responseCode === '0000' && result.data?.status === 'Unpaid') {
+
+        } else if (result.verified && result.status === 'Unpaid') {
             return NextResponse.json({
                 success: true,
                 status: 'Unpaid',
                 message: 'Transaction is unpaid or still pending',
-                data: result.data
+                rawResponse: result.rawResponse
             });
+
+        } else if (result.verified && result.status === 'Refunded') {
+            return NextResponse.json({
+                success: true,
+                status: 'Refunded',
+                message: 'Transaction has been refunded',
+                rawResponse: result.rawResponse
+            });
+
         } else {
             return NextResponse.json({
                 success: false,
-                status: result.data?.status || 'Unknown',
-                message: result.message || 'Unable to determine transaction status',
-                data: result.data
+                status: result.status,
+                message: result.errorReason || 'Unable to determine transaction status',
+                rawResponse: result.rawResponse
             });
         }
+
     } catch (error: any) {
-        console.error('Status check error:', error);
+        console.error('[Status Check] Error:', error.message);
         return NextResponse.json(
             { error: 'Failed to check status', message: error.message },
             { status: 500 }

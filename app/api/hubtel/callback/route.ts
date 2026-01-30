@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { type HubtelCallbackPayload, isSuccessResponse } from '@/lib/hubtel';
+import {
+    type HubtelCallbackPayload,
+    isSuccessResponse,
+    hubtelGetTransactionStatus
+} from '@/lib/hubtel';
 import { sendBookingEmail, type BookingEmailData } from '@/lib/email';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 
@@ -8,143 +12,213 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
  * POST /api/hubtel/callback
  * 
  * Receives payment status notifications from Hubtel
- * Automatically sends confirmation emails when payment is successful
+ * IMPORTANT: Always verifies with Hubtel API before trusting callback data
  */
 export async function POST(request: NextRequest) {
+    let clientReference: string | null = null;
+    let callbackPayload: any = null;
+
     try {
-        const payload: HubtelCallbackPayload = await request.json();
+        // Parse callback payload safely
+        try {
+            callbackPayload = await request.json();
+        } catch {
+            // Try to get clientReference from query params as fallback
+            const { searchParams } = new URL(request.url);
+            clientReference = searchParams.get('clientReference');
 
-        console.log('Hubtel Callback Received:', JSON.stringify(payload, null, 2));
-
-        // Extract payment details
-        const {
-            ResponseCode,
-            Status,
-            Data
-        } = payload;
-
-        // Log raw callback to database
-        const { error: logError } = await supabaseAdmin
-            .from('hubtel_callbacks')
-            .insert({
-                client_reference: Data?.ClientReference,
-                checkout_id: Data?.CheckoutId,
-                status: Status, // 'Success' or other status
-                amount: Data?.Amount,
-                payload: payload
-            });
-
-        if (logError) {
-            console.error('Failed to log Hubtel callback to DB:', logError);
+            if (!clientReference) {
+                console.error('[Hubtel Callback] Failed to parse JSON body and no clientReference in query');
+                return NextResponse.json({ received: true, error: 'Invalid payload' });
+            }
         }
 
-        // Check if payment was successful
-        if (isSuccessResponse(ResponseCode) && Status === 'Success' && Data.Status === 'Success') {
-            console.log('Payment Successful - Processing confirmation emails...');
+        const payload = callbackPayload as HubtelCallbackPayload;
 
-            // Parse the client reference to extract booking details
-            // The client reference format is: QRH-{timestamp}-{random}
-            const clientReference = Data.ClientReference;
+        // Log callback (we'll update with verification status later)
+        console.log('[Hubtel Callback] Received callback');
 
-            // Update database
+        // Extract clientReference robustly (check multiple possible locations)
+        clientReference =
+            payload?.Data?.ClientReference ||
+            (payload?.Data as any)?.clientReference ||
+            (payload as any)?.clientReference ||
+            (payload as any)?.ClientReference ||
+            new URL(request.url).searchParams.get('clientReference');
+
+        if (!clientReference) {
+            console.error('[Hubtel Callback] No clientReference found in payload');
+            // Still log the raw callback for debugging
+            await logCallback(null, payload, 'no_reference', null);
+            return NextResponse.json({ received: true, message: 'No clientReference' });
+        }
+
+        // =====================================================================
+        // CRITICAL: Verify payment with Hubtel API before trusting callback
+        // =====================================================================
+        console.log('[Hubtel Callback] Verifying payment with Hubtel API for:', clientReference);
+        const verification = await hubtelGetTransactionStatus(clientReference);
+
+        // Log the callback with verification result
+        await logCallback(clientReference, payload, verification.status, verification.rawResponse);
+
+        // Check if payment is verified as PAID
+        if (verification.verified && verification.status === 'Paid') {
+            console.log('[Hubtel Callback] Payment VERIFIED as Paid');
+
+            // Idempotent DB update - only update if not already paid
+            const { data: existingBooking } = await supabaseAdmin
+                .from('bookings')
+                .select('id, status, customer_email')
+                .eq('payment_reference', clientReference)
+                .single();
+
+            if (!existingBooking) {
+                console.error('[Hubtel Callback] Booking not found for reference:', clientReference);
+                return NextResponse.json({ received: true, message: 'Booking not found' });
+            }
+
+            // Idempotent: Don't downgrade a paid booking
+            if (existingBooking.status === 'paid') {
+                console.log('[Hubtel Callback] Booking already paid, skipping update');
+                return NextResponse.json({
+                    received: true,
+                    message: 'Already processed',
+                    status: 'paid'
+                });
+            }
+
+            // Update booking to paid with verification timestamp
             const { data: updatedBooking, error: dbError } = await supabaseAdmin
                 .from('bookings')
                 .update({
                     status: 'paid',
-                    hubtel_transaction_id: Data.CheckoutId,
+                    hubtel_transaction_id: verification.transactionId || payload?.Data?.CheckoutId,
+                    payment_verified_at: new Date().toISOString(),
                     updated_at: new Date().toISOString()
                 })
                 .eq('payment_reference', clientReference)
+                .eq('status', 'pending') // Extra safety: only update pending bookings
                 .select()
                 .single();
 
             if (dbError) {
-                console.error('Failed to update booking status in DB:', dbError);
-            } else {
-                console.log(`Booking ${clientReference} marked as PAID in database.`);
+                console.error('[Hubtel Callback] Failed to update booking:', dbError);
+            } else if (updatedBooking) {
+                console.log('[Hubtel Callback] Booking marked as PAID:', clientReference);
 
-                // Send confirmation email NOW that payment is confirmed
-                if (updatedBooking) {
-                    try {
-                        const emailData: BookingEmailData = {
-                            name: updatedBooking.customer_name,
-                            email: updatedBooking.customer_email,
-                            phone: updatedBooking.customer_phone,
-                            pickupLocation: updatedBooking.custom_pickup_location || updatedBooking.pickup_location,
-                            destination: updatedBooking.custom_destination || updatedBooking.destination,
-                            vehicleType: updatedBooking.vehicle_type,
-                            date: updatedBooking.pickup_date,
-                            time: updatedBooking.pickup_time,
-                            passengers: updatedBooking.passengers,
-                            luggage: updatedBooking.luggage,
-                            specialRequests: updatedBooking.special_requests,
-                            estimatedPrice: `GHS ${updatedBooking.price}`,
-                            bookingReference: clientReference,
-                            paymentStatus: 'paid',
-                            paymentReference: clientReference
-                        };
+                // Send confirmation email
+                try {
+                    const emailData: BookingEmailData = {
+                        name: updatedBooking.customer_name,
+                        email: updatedBooking.customer_email,
+                        phone: updatedBooking.customer_phone,
+                        pickupLocation: updatedBooking.custom_pickup_location || updatedBooking.pickup_location,
+                        destination: updatedBooking.custom_destination || updatedBooking.destination,
+                        vehicleType: updatedBooking.vehicle_type,
+                        date: updatedBooking.pickup_date,
+                        time: updatedBooking.pickup_time,
+                        passengers: updatedBooking.passengers,
+                        luggage: updatedBooking.luggage,
+                        specialRequests: updatedBooking.special_requests,
+                        estimatedPrice: `GHS ${updatedBooking.price}`,
+                        bookingReference: clientReference,
+                        paymentStatus: 'paid',
+                        paymentReference: clientReference
+                    };
 
-                        const emailResult = await sendBookingEmail(emailData);
-                        console.log('Confirmation email sent:', emailResult);
-                    } catch (emailError) {
-                        console.error('Failed to send confirmation email:', emailError);
-                        // Don't fail the callback - payment was still successful
-                    }
+                    await sendBookingEmail(emailData);
+                    console.log('[Hubtel Callback] Confirmation email sent');
+                } catch (emailError) {
+                    console.error('[Hubtel Callback] Failed to send email:', emailError);
+                    // Don't fail - payment was still successful
                 }
             }
 
-            // Extract customer phone from payment details
-            const customerPhone = Data.CustomerPhoneNumber || Data.PaymentDetails?.MobileMoneyNumber || '';
-
-            // Log successful payment details
-            console.log('Payment Confirmation Details:', {
-                checkoutId: Data.CheckoutId,
-                clientReference: clientReference,
-                amount: Data.Amount,
-                customerPhone: customerPhone,
-                paymentType: Data.PaymentDetails?.PaymentType,
-                channel: Data.PaymentDetails?.Channel,
-                salesInvoiceId: Data.SalesInvoiceId
+            return NextResponse.json({
+                received: true,
+                verified: true,
+                status: 'paid',
+                message: 'Payment verified and processed'
             });
 
+        } else if (!verification.verified || verification.status === 'Error') {
+            // Verification failed - log but don't update booking
+            console.warn('[Hubtel Callback] Verification FAILED:', verification.errorReason);
+
+            // Update callback log with unverified status
+            await supabaseAdmin
+                .from('hubtel_callbacks')
+                .update({
+                    verification_status: 'unverified',
+                    verification_error: verification.errorReason
+                })
+                .eq('client_reference', clientReference)
+                .order('created_at', { ascending: false })
+                .limit(1);
+
             return NextResponse.json({
-                success: true,
-                message: 'Payment callback processed successfully',
-                paymentConfirmed: true,
-                emailSent: true,
-                data: {
-                    clientReference: clientReference,
-                    amount: Data.Amount,
-                    checkoutId: Data.CheckoutId
-                }
+                received: true,
+                verified: false,
+                status: 'unverified',
+                message: 'Could not verify payment with Hubtel',
+                reason: verification.errorReason
             });
         } else {
-            // Payment failed or pending
-            console.log('Payment Failed or Pending:', {
-                responseCode: ResponseCode,
-                status: Status,
-                dataStatus: Data?.Status,
-                description: Data?.Description,
-                clientReference: Data?.ClientReference
-            });
-
+            // Payment not paid (Unpaid/Refunded)
+            console.log('[Hubtel Callback] Payment status:', verification.status);
             return NextResponse.json({
-                success: false,
-                message: 'Payment not successful',
-                status: Data?.Status,
-                description: Data?.Description
+                received: true,
+                verified: true,
+                status: verification.status,
+                message: `Payment ${verification.status}`
             });
         }
+
     } catch (error: any) {
-        console.error('Hubtel callback error:', error);
-        return NextResponse.json(
-            { error: 'Failed to process callback', message: error.message },
-            { status: 500 }
-        );
+        console.error('[Hubtel Callback] Error:', error.message);
+
+        // Log error callback
+        if (clientReference) {
+            await logCallback(clientReference, callbackPayload, 'error', { error: error.message });
+        }
+
+        // Always return 200 to Hubtel (they expect acknowledgment)
+        return NextResponse.json({
+            received: true,
+            error: 'Processing error',
+            message: 'Will retry verification'
+        });
     }
 }
 
-// Also handle GET requests (for testing/verification)
+/**
+ * Log callback to database for debugging and audit
+ */
+async function logCallback(
+    clientReference: string | null,
+    payload: any,
+    status: string,
+    verificationResponse: any
+) {
+    try {
+        await supabaseAdmin
+            .from('hubtel_callbacks')
+            .insert({
+                client_reference: clientReference,
+                checkout_id: payload?.Data?.CheckoutId || payload?.data?.checkoutId,
+                status: status,
+                amount: payload?.Data?.Amount || payload?.data?.amount,
+                payload: payload,
+                verification_response: verificationResponse,
+                verification_status: status === 'Paid' ? 'verified' : 'pending'
+            });
+    } catch (logError) {
+        console.error('[Hubtel Callback] Failed to log callback:', logError);
+    }
+}
+
+// Handle GET requests (for testing/verification)
 export async function GET() {
     return NextResponse.json({
         message: 'Hubtel callback endpoint is active',
