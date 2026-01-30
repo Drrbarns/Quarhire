@@ -37,7 +37,7 @@ function BookingFormContent() {
 
   // Fixed pricing per vehicle type
   const vehiclePrices: { [key: string]: number } = {
-    'economy': 5,        // Sedan (TESTING - revert to 600)
+    'economy': 600,      // Sedan
     'suv': 1500,         // Premium SUV
     'executive': 900,    // Mini SUV
     'van': 2000          // Executive Van
