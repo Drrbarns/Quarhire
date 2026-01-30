@@ -49,30 +49,48 @@ function SuccessContent() {
             // Short delay to allow Hubtel callback to process
             await new Promise(resolve => setTimeout(resolve, 2000));
 
-            // Try to check payment status
+            // Try to check payment status with timeout
             if (reference) {
                 try {
-                    const response = await fetch(`/api/hubtel/status?clientReference=${reference}`);
+                    // Add timeout to prevent hanging
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+                    const response = await fetch(`/api/hubtel/status?clientReference=${reference}`, {
+                        signal: controller.signal
+                    });
+                    clearTimeout(timeoutId);
+
                     const data = await response.json();
+                    console.log('Status check response:', data);
 
                     if (data.success && data.transaction?.isPaid) {
                         setPaymentStatus('success');
-                        // Send confirmation emails
                         await sendConfirmationEmails();
-                    } else if (data.error?.includes('403') || data.error?.includes('whitelist')) {
+                    } else if (data.status === 'Paid') {
+                        // Alternative format
+                        setPaymentStatus('success');
+                        await sendConfirmationEmails();
+                    } else if (data.error?.includes('403') || data.error?.includes('whitelist') || data.error?.includes('IP')) {
                         // Status check not available (IP not whitelisted)
-                        // Assume success since customer was redirected back
+                        // Since customer was redirected back with checkoutId, assume success
+                        console.log('Status check unavailable, assuming success');
+                        setPaymentStatus('success');
+                        await sendConfirmationEmails();
+                    } else if (!response.ok || data.error) {
+                        // API error - assume success since Hubtel redirected them here
+                        console.log('API error, assuming success:', data.error);
                         setPaymentStatus('success');
                         await sendConfirmationEmails();
                     } else {
-                        // Payment may still be processing
+                        // Status is pending/unknown - show pending state but still send emails
+                        // because the callback may have already processed the payment
                         setPaymentStatus('pending');
-                        // Still try to send emails - callback may have confirmed payment
                         await sendConfirmationEmails();
                     }
                 } catch (error: any) {
-                    console.error('Status check error:', error);
-                    // If status check fails, assume payment was successful (customer redirected back)
+                    console.error('Status check error:', error.message);
+                    // On any error (timeout, network, etc), assume success since Hubtel redirected user here
                     setPaymentStatus('success');
                     await sendConfirmationEmails();
                 }

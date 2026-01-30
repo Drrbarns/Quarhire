@@ -163,14 +163,15 @@ export const isHubtelConfigured = (): boolean => {
 export const hubtelGetTransactionStatus = async (
     clientReference: string
 ): Promise<HubtelVerificationResult> => {
-    const merchantId = process.env.HUBTEL_MERCHANT_ACCOUNT_NUMBER;
+    // Use HUBTEL_MERCHANT_ID for status checks (different from HUBTEL_MERCHANT_ACCOUNT_NUMBER used for checkout!)
+    const merchantId = process.env.HUBTEL_MERCHANT_ID;
 
     if (!merchantId) {
         return {
             success: false,
             verified: false,
             status: 'Error',
-            errorReason: 'HUBTEL_MERCHANT_ACCOUNT_NUMBER not configured'
+            errorReason: 'HUBTEL_MERCHANT_ID not configured - this is required for status checks'
         };
     }
 
