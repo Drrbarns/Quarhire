@@ -235,21 +235,28 @@ export const hubtelGetTransactionStatus = async (
             };
         }
 
-        const status = transactionData.Status || transactionData.status;
-        const isPaid = status === 'Paid' || status === 'Success' || status === 'Successful';
+        // Extract status - API uses TransactionStatus, InvoiceStatus, or Status
+        const status = transactionData.TransactionStatus ||
+            transactionData.InvoiceStatus ||
+            transactionData.Status ||
+            transactionData.status;
+
+        const isPaid = status === 'Paid' ||
+            status === 'Success' ||
+            status === 'Successful';
 
         return {
             success: true,
             verified: true,
             status: isPaid ? 'Paid' : (status === 'Unpaid' ? 'Unpaid' : (status === 'Refunded' ? 'Refunded' : 'Unknown')),
             transactionId: transactionData.TransactionId || transactionData.transactionId,
-            amount: transactionData.Amount || transactionData.amount,
+            amount: transactionData.TransactionAmount || transactionData.Amount || transactionData.amount,
             rawResponse: {
                 responseCode,
                 status,
                 clientReference: transactionData.ClientReference || transactionData.clientReference,
-                amount: transactionData.Amount || transactionData.amount,
-                date: transactionData.Date || transactionData.date
+                amount: transactionData.TransactionAmount || transactionData.Amount || transactionData.amount,
+                date: transactionData.StartDate || transactionData.Date || transactionData.date
             }
         };
 
