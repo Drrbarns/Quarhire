@@ -22,7 +22,7 @@ export default async function AdminLayout({
 
     const role = profile?.role as string | undefined;
     if (role !== 'admin' && role !== 'staff') {
-        redirect('/');
+        redirect('/admin/login?error=access_denied');
     }
 
     return (

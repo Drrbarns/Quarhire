@@ -2,8 +2,8 @@
 'use client'
 
 import { createBrowserClient } from '@supabase/ssr'
-import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useState, useEffect } from 'react'
 
 export default function LoginPage() {
     const [email, setEmail] = useState('')
@@ -11,6 +11,13 @@ export default function LoginPage() {
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const router = useRouter()
+    const searchParams = useSearchParams()
+
+    useEffect(() => {
+        if (searchParams.get('error') === 'access_denied') {
+            setError('Your account does not have admin access. Contact the administrator or use an admin account.')
+        }
+    }, [searchParams])
 
     const supabase = createBrowserClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,

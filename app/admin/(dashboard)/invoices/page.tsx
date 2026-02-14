@@ -23,8 +23,14 @@ export default async function InvoicesPage() {
       <div className="flex justify-between items-end mb-8">
         <div>
           <h2 className="text-3xl font-bold text-[#0A0A0A] mb-2">Invoices</h2>
-          <p className="text-[#2B2F35]">Generate invoices for bookings (special cases or records)</p>
+          <p className="text-[#2B2F35]">Generate invoices for bookings or create custom invoices</p>
         </div>
+        <Link
+          href="/admin/invoices/new"
+          className="px-4 py-2 bg-[#0074C8] text-white rounded-xl font-medium hover:bg-[#005da0] flex items-center gap-2"
+        >
+          <i className="ri-add-line"></i> Create Invoice
+        </Link>
       </div>
 
       <div className="bg-white rounded-2xl border border-[#DDE2E9] shadow-sm overflow-hidden">

@@ -64,14 +64,18 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(redirectUrl)
     }
 
-    // If user IS signed in and tries to go to /admin/login, redirect to /admin
-    if (user && request.nextUrl.pathname === '/admin/login') {
+    // If user IS signed in and tries to go to /admin/login, redirect to /admin (unless they were denied access)
+    const loginUrl = request.nextUrl.pathname === '/admin/login'
+    const accessDenied = request.nextUrl.searchParams.get('error') === 'access_denied'
+    if (user && loginUrl && !accessDenied) {
         const redirectUrl = request.nextUrl.clone()
         redirectUrl.pathname = '/admin'
         return NextResponse.redirect(redirectUrl)
     }
 
-    // Restrict /admin/* (dashboard) to admin and staff roles only
+    // Restrict /admin/* (dashboard) to admin and staff roles only.
+    // Only redirect when we successfully got a profile and it's not admin/staff.
+    // If profile fetch fails (e.g. in Edge) or no row exists, allow through; layout will enforce.
     if (user && request.nextUrl.pathname.startsWith('/admin') && request.nextUrl.pathname !== '/admin/login') {
         const { data: profile } = await supabase
             .from('profiles')
@@ -79,9 +83,10 @@ export async function middleware(request: NextRequest) {
             .eq('id', user.id)
             .single()
         const role = profile?.role as string | undefined
-        if (role !== 'admin' && role !== 'staff') {
+        if (profile != null && role !== 'admin' && role !== 'staff') {
             const redirectUrl = request.nextUrl.clone()
-            redirectUrl.pathname = '/'
+            redirectUrl.pathname = '/admin/login'
+            redirectUrl.searchParams.set('error', 'access_denied')
             return NextResponse.redirect(redirectUrl)
         }
     }
