@@ -71,6 +71,21 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(redirectUrl)
     }
 
+    // Restrict /admin/* (dashboard) to admin and staff roles only
+    if (user && request.nextUrl.pathname.startsWith('/admin') && request.nextUrl.pathname !== '/admin/login') {
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single()
+        const role = profile?.role as string | undefined
+        if (role !== 'admin' && role !== 'staff') {
+            const redirectUrl = request.nextUrl.clone()
+            redirectUrl.pathname = '/'
+            return NextResponse.redirect(redirectUrl)
+        }
+    }
+
     return response
 }
 

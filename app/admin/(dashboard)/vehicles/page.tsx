@@ -1,3 +1,7 @@
+import { VEHICLE_PRICES, VEHICLE_LABELS } from '@/lib/pricing';
+import { formatCurrency } from '@/lib/utils';
+
+const vehicleKeys = ['economy', 'executive', 'suv', 'van'] as const;
 
 export default function VehiclesPage() {
     return (
@@ -5,24 +9,41 @@ export default function VehiclesPage() {
             <div className="flex justify-between items-end mb-8">
                 <div>
                     <h2 className="text-3xl font-bold text-[#0A0A0A] mb-2">Vehicles</h2>
-                    <p className="text-[#2B2F35]">Manage your fleet and pricing</p>
+                    <p className="text-[#2B2F35]">Fleet and current pricing schedule</p>
                 </div>
-                <button className="px-4 py-2 bg-[#0A0A0A] text-white rounded-xl font-medium hover:bg-[#2B2F35] flex items-center gap-2">
-                    <i className="ri-add-line"></i> Add Vehicle
-                </button>
             </div>
 
-            <div className="bg-white rounded-2xl border border-[#DDE2E9] shadow-sm p-12 text-center">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400">
-                    <i className="ri-roadster-line text-3xl"></i>
+            <div className="bg-white rounded-2xl border border-[#DDE2E9] shadow-sm overflow-hidden">
+                <table className="w-full">
+                    <thead className="bg-[#F8FAFB] border-b border-[#DDE2E9]">
+                        <tr>
+                            <th className="px-6 py-4 text-left text-xs font-bold text-[#2B2F35] uppercase tracking-wider">Vehicle Type</th>
+                            <th className="px-6 py-4 text-left text-xs font-bold text-[#2B2F35] uppercase tracking-wider">Description</th>
+                            <th className="px-6 py-4 text-right text-xs font-bold text-[#2B2F35] uppercase tracking-wider">Price (GHS)</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#DDE2E9]">
+                        {vehicleKeys.map((key) => (
+                            <tr key={key} className="hover:bg-gray-50">
+                                <td className="px-6 py-4">
+                                    <span className="font-medium text-[#0A0A0A]">{VEHICLE_LABELS[key]}</span>
+                                </td>
+                                <td className="px-6 py-4 text-sm text-[#2B2F35]">
+                                    {key === 'economy' && '1–4 passengers, ideal for individuals or small groups'}
+                                    {key === 'executive' && '1–4 passengers, Mini SUV comfort'}
+                                    {key === 'suv' && '1–5 passengers, Premium SUV'}
+                                    {key === 'van' && '1–7 passengers, Executive Mini Van'}
+                                </td>
+                                <td className="px-6 py-4 text-right font-bold text-[#0074C8]">
+                                    {formatCurrency(VEHICLE_PRICES[key])}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+                <div className="bg-gray-50 px-6 py-4 border-t border-[#DDE2E9] text-sm text-[#2B2F35]">
+                    Pricing is updated in the app configuration. Changes here reflect across the booking page.
                 </div>
-                <h3 className="text-xl font-bold text-[#0A0A0A] mb-2">Vehicle Management</h3>
-                <p className="text-[#2B2F35] max-w-md mx-auto mb-6">
-                    This module is currently under development. Soon you will be able to manage your fleet, update prices, and set vehicle availability here.
-                </p>
-                <button className="px-6 py-3 bg-white border border-[#DDE2E9] text-[#0A0A0A] font-medium rounded-xl hover:bg-gray-50 transition-colors" disabled>
-                    Feature Coming Soon
-                </button>
             </div>
         </div>
     );

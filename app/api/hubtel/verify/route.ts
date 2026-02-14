@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth';
 import { hubtelGetTransactionStatus, isHubtelConfigured } from '@/lib/hubtel';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { sendBookingEmail, type BookingEmailData } from '@/lib/email';
@@ -14,6 +15,11 @@ import { sendBookingEmail, type BookingEmailData } from '@/lib/email';
  */
 export async function POST(request: NextRequest) {
     try {
+        const auth = await requireAdmin();
+        if (!auth) {
+            return NextResponse.json({ error: 'Forbidden. Admin or staff access required.' }, { status: 403 });
+        }
+
         if (!isHubtelConfigured()) {
             return NextResponse.json(
                 { error: 'Hubtel not configured' },
@@ -156,10 +162,15 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * GET endpoint for quick status check (no DB updates)
+ * GET endpoint for quick status check (no DB updates). Admin only.
  */
 export async function GET(request: NextRequest) {
     try {
+        const auth = await requireAdmin();
+        if (!auth) {
+            return NextResponse.json({ error: 'Forbidden. Admin or staff access required.' }, { status: 403 });
+        }
+
         const { searchParams } = new URL(request.url);
         const clientReference = searchParams.get('clientReference');
 

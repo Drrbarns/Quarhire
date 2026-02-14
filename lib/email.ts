@@ -58,6 +58,13 @@ const getFromEmail = () => {
   return process.env.EMAIL_FROM || 'Quarhire <onboarding@resend.dev>';
 };
 
+/** Base URL for payment links in emails */
+const getSiteUrl = () => {
+  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '');
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return 'https://quarhire.com';
+};
+
 /**
  * Generate HTML email template for booking confirmation
  */
@@ -202,11 +209,13 @@ const generateBookingEmailHTML = (data: BookingEmailData): string => {
                 <p style="color: #2B2F35; margin: 5px 0; font-size: 14px;">💬 WhatsApp: <a href="https://wa.me/233240665648" style="color: #0074C8; text-decoration: none;">Chat with us</a></p>
               </div>
 
-              ${data.paymentStatus === 'reserved' ? `
-              <!-- Payment Reminder -->
-              <div style="background-color: #fef3c7; border: 2px solid #f59e0b; padding: 20px; border-radius: 8px; margin: 0 0 30px 0; text-align: center;">
-                <p style="color: #0A0A0A; margin: 0 0 10px 0; font-weight: bold; font-size: 16px;">⏰ Payment Pending</p>
-                <p style="color: #2B2F35; margin: 0; font-size: 14px;">Please complete your payment to confirm your booking. We'll contact you shortly to arrange payment.</p>
+              ${data.paymentStatus === 'reserved' && data.bookingReference ? `
+              <!-- Payment link for pay-later -->
+              <div style="background-color: #eff6ff; border: 2px solid #0074C8; padding: 24px; border-radius: 8px; margin: 0 0 30px 0; text-align: center;">
+                <p style="color: #0A0A0A; margin: 0 0 12px 0; font-weight: bold; font-size: 16px;">💳 Complete Your Payment</p>
+                <p style="color: #2B2F35; margin: 0 0 20px 0; font-size: 14px;">Your reservation is held. Click the button below to pay securely and confirm your booking.</p>
+                <a href="${getSiteUrl()}/booking/pay?ref=${encodeURIComponent(data.bookingReference)}" style="display: inline-block; background: linear-gradient(135deg, #0074C8 0%, #0097F2 100%); color: #ffffff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px;">Pay Now</a>
+                <p style="color: #6b7280; margin: 16px 0 0 0; font-size: 12px;">Or copy this link: ${getSiteUrl()}/booking/pay?ref=${encodeURIComponent(data.bookingReference)}</p>
               </div>
               ` : ''}
 

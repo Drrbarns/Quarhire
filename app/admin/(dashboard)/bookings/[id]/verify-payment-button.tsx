@@ -30,6 +30,7 @@ export default function VerifyPaymentButton({
         try {
             const response = await fetch('/api/hubtel/status-check', {
                 method: 'POST',
+                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
                 },

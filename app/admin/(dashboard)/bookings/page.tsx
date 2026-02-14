@@ -1,12 +1,18 @@
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import Link from 'next/link';
+import { BookingsFilterExport } from './bookings-toolbar';
 
 export const dynamic = 'force-dynamic';
 
-export default async function BookingsPage() {
-    // Fetch bookings using Admin client to bypass RLS for this internal dashboard
-    const { data: bookings, error } = await supabaseAdmin
+export default async function BookingsPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ status?: string }>;
+}) {
+    const { status: statusFilter } = await searchParams;
+
+    const { data: allBookings, error } = await supabaseAdmin
         .from('bookings')
         .select('*')
         .order('created_at', { ascending: false });
@@ -19,6 +25,10 @@ export default async function BookingsPage() {
         );
     }
 
+    const bookings = statusFilter && statusFilter !== 'all'
+        ? (allBookings || []).filter((b) => (b.status || '').toLowerCase() === statusFilter.toLowerCase())
+        : allBookings || [];
+
     return (
         <div>
             <div className="flex justify-between items-end mb-8">
@@ -26,14 +36,7 @@ export default async function BookingsPage() {
                     <h2 className="text-3xl font-bold text-[#0A0A0A] mb-2">Bookings</h2>
                     <p className="text-[#2B2F35]">Manage and track all airport transfer reservations</p>
                 </div>
-                <div className="flex gap-3">
-                    <button className="px-4 py-2 bg-white border border-[#DDE2E9] rounded-xl text-[#2B2F35] font-medium hover:bg-gray-50 flex items-center gap-2">
-                        <i className="ri-filter-3-line"></i> Filter
-                    </button>
-                    <button className="px-4 py-2 bg-[#0A0A0A] text-white rounded-xl font-medium hover:bg-[#2B2F35] flex items-center gap-2">
-                        <i className="ri-download-line"></i> Export
-                    </button>
-                </div>
+                <BookingsFilterExport bookings={bookings} />
             </div>
 
             <div className="bg-white rounded-2xl border border-[#DDE2E9] shadow-sm overflow-hidden">

@@ -56,7 +56,10 @@ export default async function BookingDetailsPage({
                     <p className="text-[#2B2F35] ml-8">Reference: <span className="font-mono font-bold">{booking.payment_reference}</span></p>
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex gap-3 flex-wrap">
+                    <Link href={`/admin/invoices/${booking.id}`} className="px-4 py-2 bg-[#0074C8] text-white rounded-xl font-medium hover:bg-[#005da0] flex items-center gap-2">
+                        <i className="ri-file-list-3-line"></i> Generate Invoice
+                    </Link>
                     <button className="px-4 py-2 bg-white border border-[#DDE2E9] rounded-xl text-red-600 font-medium hover:bg-red-50 flex items-center gap-2">
                         <i className="ri-close-circle-line"></i> Cancel Booking
                     </button>

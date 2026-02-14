@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth';
 import { hubtelGetTransactionStatus } from '@/lib/hubtel';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { sendBookingEmail, type BookingEmailData } from '@/lib/email';
@@ -13,6 +14,11 @@ import { sendBookingEmail, type BookingEmailData } from '@/lib/email';
  */
 export async function POST(request: NextRequest) {
     try {
+        const auth = await requireAdmin();
+        if (!auth) {
+            return NextResponse.json({ error: 'Forbidden. Admin or staff access required.' }, { status: 403 });
+        }
+
         const { clientReference, bookingId } = await request.json();
 
         if (!clientReference) {

@@ -44,6 +44,10 @@ export function AdminSidebarContent() {
                     <i className="ri-secure-payment-line"></i>
                     Payments
                 </Link>
+                <Link href="/admin/invoices" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-white/70 hover:text-white transition-all">
+                    <i className="ri-file-list-3-line"></i>
+                    Invoices
+                </Link>
             </nav>
 
             <div className="p-4 border-t border-white/10">

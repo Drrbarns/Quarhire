@@ -1,21 +1,15 @@
-
 import { type NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { requireAdmin } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 
 export async function GET(request: NextRequest) {
     try {
-        const supabase = await createClient();
-
-        // Check if user is authenticated
-        const { data: { user } } = await supabase.auth.getUser();
-
-        if (!user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        const auth = await requireAdmin();
+        if (!auth) {
+            return NextResponse.json({ error: 'Forbidden. Admin or staff access required.' }, { status: 403 });
         }
 
-        // Fetch all bookings (ordered by created_at desc)
-        const { data: bookings, error } = await supabase
+        const { data: bookings, error } = await supabaseAdmin
             .from('bookings')
             .select('*')
             .order('created_at', { ascending: false });

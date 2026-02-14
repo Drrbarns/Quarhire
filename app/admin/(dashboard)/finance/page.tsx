@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { formatCurrency } from '@/lib/utils';
 import { SimpleChart } from '../charts';
+import { FinanceExportButton } from './finance-export-button';
 
 export const dynamic = 'force-dynamic';
 
@@ -84,9 +85,7 @@ export default async function FinancePage() {
                     <h2 className="text-3xl font-bold text-[#0A0A0A] mb-2">Finance</h2>
                     <p className="text-[#2B2F35]">Financial overview and revenue reports</p>
                 </div>
-                <button className="px-4 py-2 bg-[#0A0A0A] text-white rounded-xl font-medium hover:bg-[#2B2F35] flex items-center gap-2">
-                    <i className="ri-download-2-line"></i> Export Report
-                </button>
+                <FinanceExportButton bookings={bookings} />
             </div>
 
             {/* KPI Cards */}

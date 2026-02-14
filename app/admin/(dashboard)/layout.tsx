@@ -1,14 +1,30 @@
-
 import '../../globals.css';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
 import { AdminSidebarContent } from './sidebar-content';
 import MobileSidebar from './mobile-sidebar';
 
-export default function AdminLayout({
+export default async function AdminLayout({
     children,
 }: {
     children: React.ReactNode
 }) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) redirect('/admin/login');
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+    const role = profile?.role as string | undefined;
+    if (role !== 'admin' && role !== 'staff') {
+        redirect('/');
+    }
+
     return (
         <div className="flex h-screen bg-[#F0F4F8] text-[#0A0A0A]">
             <aside className="w-64 hidden md:block">
