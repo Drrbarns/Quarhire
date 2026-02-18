@@ -33,6 +33,8 @@ export default function NewInvoicePage() {
     date: string;
     reference: string;
   } | null>(null);
+  const [sending, setSending] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +53,43 @@ export default function NewInvoicePage() {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleSendEmail = async () => {
+    if (!preview) return;
+    if (!preview.customerEmail) {
+      setEmailStatus({ type: 'error', message: 'No customer email address provided.' });
+      return;
+    }
+    setSending(true);
+    setEmailStatus(null);
+
+    try {
+      const res = await fetch('/api/invoices/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerName: preview.customerName,
+          customerEmail: preview.customerEmail,
+          customerPhone: preview.customerPhone || undefined,
+          reference: preview.reference,
+          invoiceDate: preview.date,
+          description: preview.description,
+          amount: preview.amount,
+          status: 'pending',
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setEmailStatus({ type: 'success', message: `Invoice sent to ${preview.customerEmail}` });
+      } else {
+        setEmailStatus({ type: 'error', message: data.error || 'Failed to send email' });
+      }
+    } catch {
+      setEmailStatus({ type: 'error', message: 'Network error. Please try again.' });
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -164,7 +203,28 @@ export default function NewInvoicePage() {
 
       {preview && (
         <div className="space-y-4">
-          <div className="flex justify-end print:hidden">
+          {emailStatus && (
+            <div className={`p-4 rounded-xl text-sm flex items-center gap-2 print:hidden ${
+              emailStatus.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
+            }`}>
+              <i className={emailStatus.type === 'success' ? 'ri-check-line' : 'ri-error-warning-line'}></i>
+              {emailStatus.message}
+              <button onClick={() => setEmailStatus(null)} className="ml-auto text-lg leading-none">&times;</button>
+            </div>
+          )}
+          <div className="flex justify-end gap-2 print:hidden">
+            <button
+              type="button"
+              onClick={handleSendEmail}
+              disabled={sending}
+              className="px-4 py-2 bg-[#0074C8] text-white rounded-xl font-medium hover:bg-[#005da0] disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {sending ? (
+                <><i className="ri-loader-4-line animate-spin"></i> Sending...</>
+              ) : (
+                <><i className="ri-mail-send-line"></i> Send Invoice Email</>
+              )}
+            </button>
             <button
               type="button"
               onClick={handlePrint}

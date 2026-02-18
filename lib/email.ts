@@ -544,6 +544,165 @@ const generateContactFormHTML = (data: ContactFormData): string => {
 };
 
 /**
+ * Invoice email data (used by both booking invoices and custom invoices)
+ */
+export interface InvoiceEmailData {
+  customerName: string;
+  customerEmail: string;
+  customerPhone?: string;
+  reference: string;
+  invoiceDate: string;
+  description: string;
+  amount: number;
+  paymentLink?: string;
+  pickup?: string;
+  destination?: string;
+  dateTime?: string;
+  vehicle?: string;
+  passengers?: string;
+  luggage?: string;
+  status?: string;
+}
+
+/**
+ * Generate HTML email template for an invoice with optional payment link
+ */
+const generateInvoiceEmailHTML = (data: InvoiceEmailData): string => {
+  const formattedAmount = new Intl.NumberFormat('en-GH', { style: 'currency', currency: 'GHS' }).format(data.amount);
+  const isPending = !data.status || data.status === 'pending' || data.status === 'reserved';
+
+  const tripRows = [
+    data.pickup ? `<tr><td style="padding:8px 0;color:#6b7280;width:40%;">Pickup</td><td style="padding:8px 0;color:#0A0A0A;">${data.pickup}</td></tr>` : '',
+    data.destination ? `<tr><td style="padding:8px 0;color:#6b7280;">Destination</td><td style="padding:8px 0;color:#0A0A0A;">${data.destination}</td></tr>` : '',
+    data.dateTime ? `<tr><td style="padding:8px 0;color:#6b7280;">Date & Time</td><td style="padding:8px 0;color:#0A0A0A;">${data.dateTime}</td></tr>` : '',
+    data.vehicle ? `<tr><td style="padding:8px 0;color:#6b7280;">Vehicle</td><td style="padding:8px 0;color:#0A0A0A;">${data.vehicle}</td></tr>` : '',
+    data.passengers ? `<tr><td style="padding:8px 0;color:#6b7280;">Passengers / Luggage</td><td style="padding:8px 0;color:#0A0A0A;">${data.passengers} pax${data.luggage ? `, ${data.luggage} bags` : ''}</td></tr>` : '',
+  ].filter(Boolean).join('');
+
+  const tripSection = tripRows ? `
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
+      <tr><td colspan="2" style="padding:0 0 8px 0;"><strong style="color:#0A0A0A;font-size:14px;">Trip Details</strong></td></tr>
+      ${tripRows}
+    </table>` : '';
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invoice - Quarhire</title>
+</head>
+<body style="margin:0;padding:0;font-family:Arial,sans-serif;background-color:#f4f4f4;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f4;padding:20px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+          <tr>
+            <td style="background-color:#0A0A0A;padding:30px;">
+              <h1 style="color:#ffffff;margin:0;font-size:28px;font-weight:bold;">INVOICE</h1>
+              <p style="color:rgba(255,255,255,0.8);margin:8px 0 0 0;font-size:14px;">Quarhire Airport Transfers</p>
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;">
+                <tr>
+                  <td>
+                    <p style="color:rgba(255,255,255,0.6);margin:0;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Invoice #</p>
+                    <p style="color:#ffffff;margin:4px 0 0 0;font-weight:bold;font-family:monospace;font-size:16px;">${data.reference}</p>
+                  </td>
+                  <td style="text-align:right;">
+                    <p style="color:rgba(255,255,255,0.6);margin:0;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Date</p>
+                    <p style="color:#ffffff;margin:4px 0 0 0;">${data.invoiceDate}</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:32px 30px;">
+              <div style="margin-bottom:24px;">
+                <p style="color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin:0 0 6px 0;font-weight:bold;">Bill To</p>
+                <p style="color:#0A0A0A;margin:0;font-weight:bold;font-size:16px;">${data.customerName}</p>
+                <p style="color:#2B2F35;margin:2px 0;font-size:14px;">${data.customerEmail}</p>
+                ${data.customerPhone ? `<p style="color:#2B2F35;margin:2px 0;font-size:14px;">${data.customerPhone}</p>` : ''}
+              </div>
+
+              <div style="margin-bottom:24px;">
+                <p style="color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin:0 0 6px 0;font-weight:bold;">Description</p>
+                <p style="color:#0A0A0A;margin:0;font-size:14px;">${data.description}</p>
+              </div>
+
+              ${tripSection}
+
+              <div style="border-top:2px solid #DDE2E9;padding-top:20px;margin-top:8px;">
+                <table width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td><strong style="color:#0A0A0A;font-size:16px;">Total Amount</strong></td>
+                    <td style="text-align:right;"><span style="color:#0074C8;font-size:24px;font-weight:bold;">${formattedAmount}</span></td>
+                  </tr>
+                </table>
+              </div>
+
+              ${isPending && data.paymentLink ? `
+              <div style="background-color:#eff6ff;border:2px solid #0074C8;padding:24px;border-radius:8px;margin:28px 0 0 0;text-align:center;">
+                <p style="color:#0A0A0A;margin:0 0 12px 0;font-weight:bold;font-size:16px;">Complete Your Payment</p>
+                <p style="color:#2B2F35;margin:0 0 20px 0;font-size:14px;">Click below to pay securely and confirm your booking.</p>
+                <a href="${data.paymentLink}" style="display:inline-block;background:linear-gradient(135deg,#0074C8 0%,#0097F2 100%);color:#ffffff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:16px;">Pay Now</a>
+                <p style="color:#6b7280;margin:16px 0 0 0;font-size:12px;">Or copy this link: ${data.paymentLink}</p>
+              </div>
+              ` : ''}
+            </td>
+          </tr>
+
+          <tr>
+            <td style="background-color:#f8fafb;padding:16px 30px;text-align:center;">
+              <p style="color:#6b7280;margin:0;font-size:12px;">Thank you for choosing Quarhire. For queries contact +233 240 665 648 or WhatsApp.</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="background-color:#0A0A0A;padding:16px;text-align:center;">
+              <p style="color:#ffffff;margin:0;font-size:12px;">&copy; 2025 Quarhire. All rights reserved.</p>
+              <p style="color:rgba(255,255,255,0.6);margin:6px 0 0 0;font-size:11px;">Powered by Doctor Barn Tech</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+};
+
+/**
+ * Send an invoice email to a customer
+ */
+export const sendInvoiceEmail = async (data: InvoiceEmailData): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const resend = getResendClient();
+    if (!resend) return { success: false, error: 'Email service not configured (RESEND_API_KEY missing)' };
+
+    const fromEmail = getFromEmail();
+    const { data: emailData, error } = await resend.emails.send({
+      from: fromEmail,
+      to: data.customerEmail,
+      subject: `Invoice ${data.reference} - Quarhire`,
+      html: generateInvoiceEmailHTML(data),
+    });
+
+    if (error) {
+      console.error('Error sending invoice email:', error);
+      return { success: false, error: error.message || 'Email send failed' };
+    }
+
+    console.log('Invoice email sent:', emailData?.id);
+    return { success: true };
+  } catch (err: any) {
+    console.error('Error sending invoice email:', err);
+    return { success: false, error: err.message || 'Failed to send invoice email' };
+  }
+};
+
+/**
  * Send contact form email to admin
  */
 export const sendContactFormEmail = async (data: ContactFormData): Promise<{ success: boolean; error?: string; details?: any }> => {

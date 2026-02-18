@@ -85,6 +85,8 @@ export default function InvoiceWithAmend({ booking }: { booking: BookingForInvoi
   const [amended, setAmended] = useState<AmendedData | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<AmendedData>(() => defaultAmended(booking));
+  const [sending, setSending] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const display = amended || defaultAmended(booking);
   const isAmended = amended !== null;
@@ -102,6 +104,54 @@ export default function InvoiceWithAmend({ booking }: { booking: BookingForInvoi
   };
 
   const amountNum = parseFloat(String(display.amount).replace(/,/g, '')) || 0;
+
+  const handleSendEmail = async () => {
+    if (!display.customer_email) {
+      setEmailStatus({ type: 'error', message: 'No customer email address available.' });
+      return;
+    }
+    setSending(true);
+    setEmailStatus(null);
+
+    const isPending = !display.status || display.status === 'pending' || display.status === 'reserved';
+    const ref = display.reference || booking.payment_reference;
+    const siteUrl = window.location.origin;
+    const paymentLink = isPending && ref ? `${siteUrl}/booking/pay?ref=${encodeURIComponent(ref)}` : undefined;
+
+    try {
+      const res = await fetch('/api/invoices/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerName: display.customer_name,
+          customerEmail: display.customer_email,
+          customerPhone: display.customer_phone || undefined,
+          reference: display.reference || 'N/A',
+          invoiceDate: display.invoice_date || new Date().toISOString().slice(0, 10),
+          description: `Airport transfer – ${display.pickup} to ${display.destination}`,
+          amount: amountNum,
+          paymentLink,
+          pickup: display.pickup,
+          destination: display.destination,
+          dateTime: display.date_time,
+          vehicle: display.vehicle,
+          passengers: display.passengers,
+          luggage: display.luggage,
+          status: display.status,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setEmailStatus({ type: 'success', message: `Invoice sent to ${display.customer_email}` });
+      } else {
+        setEmailStatus({ type: 'error', message: data.error || 'Failed to send email' });
+      }
+    } catch {
+      setEmailStatus({ type: 'error', message: 'Network error. Please try again.' });
+    } finally {
+      setSending(false);
+    }
+  };
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
@@ -133,6 +183,18 @@ export default function InvoiceWithAmend({ booking }: { booking: BookingForInvoi
           )}
           <button
             type="button"
+            onClick={handleSendEmail}
+            disabled={sending}
+            className="px-4 py-2 bg-[#0074C8] text-white rounded-xl font-medium hover:bg-[#005da0] disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {sending ? (
+              <><i className="ri-loader-4-line animate-spin"></i> Sending...</>
+            ) : (
+              <><i className="ri-mail-send-line"></i> Send Invoice Email</>
+            )}
+          </button>
+          <button
+            type="button"
             onClick={() => window.print()}
             className="px-4 py-2 bg-[#0A0A0A] text-white rounded-xl font-medium hover:bg-[#2B2F35] flex items-center gap-2"
           >
@@ -140,6 +202,16 @@ export default function InvoiceWithAmend({ booking }: { booking: BookingForInvoi
           </button>
         </div>
       </div>
+
+      {emailStatus && (
+        <div className={`mb-4 p-4 rounded-xl text-sm flex items-center gap-2 print:hidden ${
+          emailStatus.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
+        }`}>
+          <i className={emailStatus.type === 'success' ? 'ri-check-line' : 'ri-error-warning-line'}></i>
+          {emailStatus.message}
+          <button onClick={() => setEmailStatus(null)} className="ml-auto text-lg leading-none">&times;</button>
+        </div>
+      )}
 
       {showForm && (
         <div className="mb-8 p-6 bg-gray-50 rounded-2xl border border-[#DDE2E9] print:hidden">
