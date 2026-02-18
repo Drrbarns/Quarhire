@@ -1,11 +1,10 @@
-
 'use client'
 
 import { createBrowserClient } from '@supabase/ssr'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 
-export default function LoginPage() {
+function LoginForm() {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [isLoading, setIsLoading] = useState(false)
@@ -129,5 +128,31 @@ export default function LoginPage() {
                 </div>
             </div>
         </div>
+    )
+}
+
+function LoginFallback() {
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-[#F0F4F8] p-4">
+            <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-[#DDE2E9] overflow-hidden">
+                <div className="bg-[#0A0A0A] p-8 text-center">
+                    <h1 className="text-3xl font-bold bg-gradient-to-r from-[#0074C8] to-[#0097F2] bg-clip-text text-transparent mb-2">
+                        QUARHIRE
+                    </h1>
+                    <p className="text-white/60 text-sm">Admin Portal Access</p>
+                </div>
+                <div className="p-8 flex items-center justify-center min-h-[200px]">
+                    <div className="animate-pulse text-gray-400">Loading...</div>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={<LoginFallback />}>
+            <LoginForm />
+        </Suspense>
     )
 }
