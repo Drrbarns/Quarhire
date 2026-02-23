@@ -77,6 +77,7 @@ export default function NewInvoicePage() {
           description: preview.description,
           amount: preview.amount,
           status: 'pending',
+          createBooking: true,
         }),
       });
       const data = await res.json();

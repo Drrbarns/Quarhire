@@ -569,7 +569,6 @@ export interface InvoiceEmailData {
  */
 const generateInvoiceEmailHTML = (data: InvoiceEmailData): string => {
   const formattedAmount = new Intl.NumberFormat('en-GH', { style: 'currency', currency: 'GHS' }).format(data.amount);
-  const isPending = !data.status || data.status === 'pending' || data.status === 'reserved';
 
   const tripRows = [
     data.pickup ? `<tr><td style="padding:8px 0;color:#6b7280;width:40%;">Pickup</td><td style="padding:8px 0;color:#0A0A0A;">${data.pickup}</td></tr>` : '',
@@ -642,7 +641,7 @@ const generateInvoiceEmailHTML = (data: InvoiceEmailData): string => {
                 </table>
               </div>
 
-              ${isPending && data.paymentLink ? `
+              ${data.paymentLink ? `
               <div style="background-color:#eff6ff;border:2px solid #0074C8;padding:24px;border-radius:8px;margin:28px 0 0 0;text-align:center;">
                 <p style="color:#0A0A0A;margin:0 0 12px 0;font-weight:bold;font-size:16px;">Complete Your Payment</p>
                 <p style="color:#2B2F35;margin:0 0 20px 0;font-size:14px;">Click below to pay securely and confirm your booking.</p>

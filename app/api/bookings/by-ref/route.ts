@@ -23,9 +23,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
     }
 
-    if (booking.status !== 'pending') {
+    if (booking.status === 'paid' || booking.status === 'completed') {
       return NextResponse.json(
-        { error: 'This booking is already paid or no longer pending.' },
+        { error: 'This invoice has already been paid.' },
         { status: 400 }
       );
     }

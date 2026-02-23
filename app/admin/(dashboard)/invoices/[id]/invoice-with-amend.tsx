@@ -113,10 +113,9 @@ export default function InvoiceWithAmend({ booking }: { booking: BookingForInvoi
     setSending(true);
     setEmailStatus(null);
 
-    const isPending = !display.status || display.status === 'pending' || display.status === 'reserved';
     const ref = display.reference || booking.payment_reference;
     const siteUrl = window.location.origin;
-    const paymentLink = isPending && ref ? `${siteUrl}/booking/pay?ref=${encodeURIComponent(ref)}` : undefined;
+    const paymentLink = ref ? `${siteUrl}/booking/pay?ref=${encodeURIComponent(ref)}` : undefined;
 
     try {
       const res = await fetch('/api/invoices/send-email', {
