@@ -17,7 +17,7 @@ export default function Services() {
     {
       icon: 'ri-plane-line',
       title: 'Airport Pickups & Drop-offs',
-      description: 'Professional transfers to and from Kotoka International Airport with flight tracking, meet & greet service, and punctual arrivals.',
+      description: 'Professional transfers to and from Accra International Airport with flight tracking, meet & greet service, and punctual arrivals.',
       features: ['Flight tracking technology', 'Meet & greet at arrivals', 'Professional name boards', 'Luggage assistance', 'Terminal navigation help']
     },
     {
@@ -138,7 +138,7 @@ export default function Services() {
                   <i className="ri-plane-line text-3xl text-white w-8 h-8 flex items-center justify-center"></i>
                 </div>
                 <h3 className="text-2xl font-bold text-[#0A0A0A] mb-4 group-hover:text-[#0074C8] transition-colors">Airport Pickups & Drop-offs</h3>
-                <p className="text-[#2B2F35] mb-6 leading-relaxed">Professional transfers to and from Kotoka International Airport with flight tracking, meet & greet service, and punctual arrivals.</p>
+                <p className="text-[#2B2F35] mb-6 leading-relaxed">Professional transfers to and from Accra International Airport with flight tracking, meet & greet service, and punctual arrivals.</p>
 
                 <div className="space-y-3">
                   <div className="flex items-center text-sm text-[#2B2F35] bg-[#0074C8]/5 p-3 rounded-lg">

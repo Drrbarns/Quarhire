@@ -29,10 +29,10 @@ export const metadata: Metadata = {
     default: 'Quarhire - Reliable Airport Pickup Services in Ghana',
     template: '%s | Quarhire'
   },
-  description: 'Book your ride safely and conveniently with Quarhire. Professional airport pickup services in Ghana with reliable drivers, premium vehicles, and secure payments. Available 24/7 from Kotoka International Airport.',
+  description: 'Book your ride safely and conveniently with Quarhire. Professional airport pickup services in Ghana with reliable drivers, premium vehicles, and secure payments. Available 24/7 from Accra International Airport.',
   keywords: [
     'airport pickup Ghana',
-    'Kotoka airport transfer',
+    'Accra airport transfer',
     'Ghana airport taxi',
     'Accra airport pickup',
     'airport transfer service Ghana',

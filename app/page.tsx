@@ -64,7 +64,7 @@ export default function Home() {
           itemOffered: {
             '@type': 'Service',
             name: 'Airport Pickup',
-            description: 'Reliable pickup service from Kotoka International Airport',
+            description: 'Reliable pickup service from Accra International Airport',
           },
         },
         {
@@ -244,7 +244,7 @@ export default function Home() {
                   </div>
                   <h3 className="text-2xl font-bold text-gray-900 mb-4 group-hover:text-white transition-colors duration-500">Airport Pickup</h3>
                   <p className="text-gray-600 leading-relaxed group-hover:text-white/90 transition-colors duration-500">
-                    Reliable pickup service from Kotoka International Airport to any destination in Accra and beyond.
+                    Reliable pickup service from Accra International Airport to any destination in Accra and beyond.
                   </p>
                 </div>
                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 group-hover:bg-white/20 transition-all duration-500"></div>

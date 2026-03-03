@@ -46,7 +46,7 @@ export default function FAQs() {
     },
     {
       question: 'What areas do you serve?',
-      answer: 'We primarily serve Kotoka International Airport and destinations within Greater Accra. We also provide services to nearby regions including Tema, Kasoa, and other areas within a 50km radius of Accra. Contact us for destinations outside this area.'
+      answer: 'We primarily serve Accra International Airport and destinations within Greater Accra. We also provide services to nearby regions including Tema, Kasoa, and other areas within a 50km radius of Accra. Contact us for destinations outside this area.'
     },
     {
       question: 'Can I make multiple stops during my journey?',

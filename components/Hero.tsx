@@ -50,7 +50,7 @@ export default function Hero() {
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
             <i className="ri-plane-line text-white"></i>
-            <span className="text-white text-sm font-medium">Kotoka International Airport</span>
+            <span className="text-white text-sm font-medium">Accra International Airport</span>
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
           </div>
 
