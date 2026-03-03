@@ -25,6 +25,10 @@ export function AdminSidebarContent() {
                     <i className="ri-roadster-line"></i>
                     Vehicles
                 </Link>
+                <Link href="/admin/pricing" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-white/70 hover:text-white transition-all">
+                    <i className="ri-price-tag-3-line"></i>
+                    Pricing
+                </Link>
                 <Link href="/admin/drivers" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-white/70 hover:text-white transition-all">
                     <i className="ri-steering-2-line"></i>
                     Drivers

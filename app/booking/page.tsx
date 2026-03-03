@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
   generatePaymentReference,
@@ -13,6 +13,17 @@ import { VEHICLE_PRICES } from '@/lib/pricing';
 function BookingFormContent() {
   const searchParams = useSearchParams();
   const serviceParam = searchParams.get('service');
+
+  const [vehiclePrices, setVehiclePrices] = useState<Record<string, number>>(VEHICLE_PRICES);
+
+  useEffect(() => {
+    fetch('/api/pricing')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.prices) setVehiclePrices(data.prices);
+      })
+      .catch(() => {});
+  }, []);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -35,9 +46,8 @@ function BookingFormContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');
 
-
   const calculatePrice = () => {
-    const basePrice = VEHICLE_PRICES[formData.vehicleType] || 0;
+    const basePrice = vehiclePrices[formData.vehicleType] || 0;
 
     return {
       basePrice,
